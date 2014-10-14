@@ -1,0 +1,168 @@
+[ ;; workspace
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.workspace/name
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Der Name des Workspaces"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.workspace/rootNode
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "Die Root-Node des Workspaces"
+  :db.install/_attribute :db.part/db}
+
+
+ ;; node
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.node/name
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Die Name der Node"
+  :db.install/_attribute :db.part/db}
+
+  {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.node/children
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Die Child-Nodes der Node"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.node/properties
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Die Properties der Node"
+  :db.install/_attribute :db.part/db}
+
+ ;; property
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property/name
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Die Name der Node"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property/type
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Der Typ der Property"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.name/value
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ NAME"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.name/values
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ NAME"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.string/value
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ STRING"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.string/values
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ STRING"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.binary/value
+  :db/valueType :db.type/bytes
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ BINARY"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.binary/values
+  :db/valueType :db.type/bytes
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ BINARY"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.long/value
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ LONG"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.long/values
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ LONG"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.double/value
+  :db/valueType :db.type/double
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ DOUBLE"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.double/values
+  :db/valueType :db.type/double
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ DOUBLE"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.date/value
+  :db/valueType :db.type/instant
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ DATE"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.date/values
+  :db/valueType :db.type/instant
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ DATE"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.boolean/value
+  :db/valueType :db.type/boolean
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ BOOLEAN"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.boolean/values
+  :db/valueType :db.type/boolean
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ BOOLEAN"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.reference/value
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ REFERENCE"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property.reference/values
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ REFERENCE"
+  :db.install/_attribute :db.part/db}
+ ]
