@@ -21,7 +21,7 @@
   :db/ident :jcr.node/name
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
-  :db/doc "Die Name der Node"
+  :db/doc "Der Name der Node"
   :db.install/_attribute :db.part/db}
 
   {:db/id #db/id[:db.part/db]
