@@ -13,12 +13,10 @@
    [clojure.tools.namespace.repl :refer (refresh refresh-all)]
    [ccr.system :as system]
    [ccr.import :as import]
-   [ccr.jcr :as jcr]
-   [clojure.zip :as zip]
-   [clojure.data.xml :as xml]
-   [clojure.data.zip.xml :as zx]
-   [clojure.data.zip :as z]
-   [clojure.instant :as instant]
+   [ccr.repository :as repository]
+   [ccr.session :as session]
+   [ccr.tree :as tree]
+   [ccr.cnd :as cnd]
    [datomic.api :as d  :only [q db]]
    ))
 
@@ -55,6 +53,8 @@
   []
   (stop)
   (refresh :after 'user/go))
+
+(init)
 
 
 (comment

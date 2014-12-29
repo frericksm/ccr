@@ -8,6 +8,27 @@
             [clojure.instant :as instant]
             [clojure.pprint :as pp]))
 
+
+
+(defn uuid-tempid-map
+  "Liefert eine Map die UUIDs auf Datomic Tempids abbildet.
+   Dazu werden alle Properties mit dem Namen \"jcr:uuid\" ermittlet. "
+  [loc]
+  (as-> loc x
+        (zx/xml-> x 
+                  z/descendants
+                  :property
+                  (zx/attr= :sv/name "jcr:uuid"))
+        (map (fn [p] (vector (zx/text p) (d/tempid ":db.part/user"))) x)
+        (into {} x)))
+
+(defn import-file-zipper [import-file]
+  (as-> import-file x
+        (io/file x)
+        (io/input-stream x)
+        (xml/parse x)
+        (zip/xml-zip x)))
+
 (defn trans-prop-val [uuid2tempid type val]
   (case type
     "Date" (instant/read-instant-timestamp val) 
@@ -24,18 +45,12 @@
       (clojure.string/replace ":" "/")
       keyword))
 
-(defn props-2 [loc]
+(defn props [loc]
   (as-> loc x
         (zx/xml-> x z/children :property)
         (map (fn [p] {:name (zx/attr p :sv/name)
                      :type (zx/attr p :sv/type)
                      :value (zx/text p)}) x)))
-
-(defn props [uuid2tempids loc]
-  (as-> loc x
-        (zx/xml-> x z/children :property)
-        (reduce (fn [a p] (assoc a (trans-prop-name (zx/attr p :sv/name))
-                           (trans-prop-val uuid2tempids (zx/attr p :sv/type) (zx/text p)))) {} x)))
 
 (defn prop-val [loc prop-name]
   (as-> loc x
@@ -46,26 +61,16 @@
         (map zx/text x)
         (first x)))
 
-(defn node-tx [uuid2tempid parent2children loc]
-  (let [ps (props loc)
-        uuid (get ps :jcr/uuid)
-        nid (get uuid2tempid uuid)
-        children-ids (->> (get parent2children uuid) (map uuid2tempid))
-        ]
-    (merge ps 
-           {:db/id nid
-            :jcr/uuid uuid
-            :jcr.node/name (zx/attr loc :sv/name)
-            :jcr.node/children children-ids})))
-
 (defn jcr-value-attr [type many]
   (let [card (if many "values" "value")
         t (clojure.string/lower-case type)]
     (->> (format "jcr.property.%s/%s"  t card )
          keyword)))
 
-(defn node-tx-2 [uuid2tempid parent2children loc]
-  (let [ps           (props-2 loc)
+(defn node-tx
+  "Erzeugt eine Transaction für die Node an der Location 'loc'."
+  [uuid2tempid parent2children uuid2position loc]
+  (let [ps           (props loc)
         ps2tempids   (reduce (fn [a p] (assoc a (:name  p)
                                              (d/tempid ":db.part/user")))
                              {} ps)        
@@ -87,12 +92,37 @@
         nid          (get uuid2tempid uuid)
         children-ids (->> (get parent2children uuid) (map uuid2tempid))
         properties-ids (vals ps2tempids)
-        ]
-    (cons {:db/id nid
-           :jcr.node/name (zx/attr loc :sv/name)
-           :jcr.node/properties properties-ids
-           :jcr.node/children children-ids}
-          ps-tx)))
+        position       (get uuid2position uuid)
+        node-tx [{:db/id nid
+                  :jcr.node/name (zx/attr loc :sv/name)
+                  :jcr.node/properties properties-ids
+                  :jcr.node/children children-ids
+                  }]]
+    (as-> node-tx x
+          (if position (cons {:db/id nid
+                              :jcr.node/position position}
+                             x) x)
+          (concat x ps-tx))))
+
+(defn to-tx [uuid2tempid parent2children uuid2position loc]
+  (as-> loc x
+        (zx/xml-> x z/descendants :node)
+        (map (partial node-tx uuid2tempid parent2children uuid2position) x)
+        (reduce (fn [a c] (concat a c) ) x)
+        ))
+
+(defn uuid-to-position
+  "Liefert eine Map, die die UUID einer Node auf die Position dieser Node als Child des Parent hat"
+  [loc]
+  (as-> loc x
+        (zx/xml-> x z/descendants :node)
+        (map (fn [n]
+               (map-indexed (fn [ix c] (vector c ix))
+                            (->> (zx/xml-> n z/children :node)
+                                 (map #(prop-val % "jcr:uuid")))))
+             x)
+        (apply concat x)
+        (into {} x)))
 
 (defn parent-child-relations
   "Liefert eine Map, die die UUID einer Node auf die UUIDs der Child-Nodes abbildet"
@@ -105,59 +135,37 @@
              x)
         (into {} x)))
 
-(defn uuid-tempid-map
-  "Liefert eine Map die UUIDs auf Datomic Tempids abbildet.
-   Dazu werden alle Properties mit dem Namen \"jcr:uuid\" ermittlet. "
-  [loc]
-  (as-> loc x
-        (zx/xml-> x 
-                  z/descendants
-                  :property
-                  (zx/attr= :sv/name "jcr:uuid"))
-        (map (fn [p] (vector (zx/text p) (d/tempid ":db.part/user"))) x)
-        (into {} x)))
-
-(defn to-tx-2 [uuid2tempid parent2children loc]
-  (as-> loc x
-        (zx/xml-> x z/descendants :node)
-        (map (partial node-tx-2 uuid2tempid parent2children) x)
-        (apply concat x)
-        ))
-
-(defn import-file-zipper [import-file]
-  (as-> import-file x
-        (io/file x)
-        (io/input-stream x)
-        (xml/parse x)
-        (zip/xml-zip x)))
-
-
-(def builins-file "C:/Projekte/isp-head/ContentEditor/Prod/META-INF/repository/builtin.xml_")
-(def custom-file "C:/jcr111/repository/nodetypes/custom_nodetypes.xml")
-
-(defn load-node-types []
-  (let [builtins (as->  builins-file x
-                        (io/input-stream x)
-                        (xml/parse x))
-        customs (as->  custom-file x
-                        (io/input-stream x)
-                        (xml/parse x))
-        ]))
-
 (defn tx-data [import-file]
   (let [s (import-file-zipper import-file)
         u2t (uuid-tempid-map s)
-        p2c (parent-child-relations s)]
-    (to-tx-2 u2t p2c s)))
+        u2p (uuid-to-position s)
+        import-root-uuid (prop-val s "jcr:uuid") ;; die uuid der root-node aus dem import file
+        p2c (parent-child-relations s)
+        import-tx-data (to-tx u2t p2c u2p s)]
+    {:import-tx-data import-tx-data
+     :import-root-db-id (get u2t import-root-uuid) 
+     }))
 
-(defn start [system]
-  (as-> system x
-        (:import-file x)
-        (tx-data x)
-        (with-open [o (io/writer  (:tx-out-file system))]
-          (binding [*out* o]
-            (pr x)))
-        ))
+(defn add-tx [node-id child-id]
+  [{:db/id             node-id
+    :jcr.node/children child-id}
+   [:append-position-in-scope node-id :jcr.node/children child-id :jcr.node/position]
+   ])
+
+(defn import-tx
+  "Liefert die Transaction mit der das file importiert wird"
+  [parent-node file]
+  (let [{:keys [import-tx-data import-root-db-id] } (tx-data file)
+        parent-new-node-link-tx (add-tx (:db/id parent-node) import-root-db-id)]
+    (concat parent-new-node-link-tx import-tx-data)))
+
+(defn import-xml
+  "Importiert den Inhalt der XML-Datei (System-View) als Child der parent-node.
+  Liefert eine session, die den veränderten Zustand berücksichtigt"
+  [session parent-node file]
+  (let [conn (get-in session [:repository :connection])
+        {:keys [db-after]} (deref  (d/transact conn (import-tx parent-node file)))]
+    (assoc session :db db-after)))
 
 
 

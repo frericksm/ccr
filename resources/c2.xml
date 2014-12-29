@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sv:node xmlns:fn_old="http://www.w3.org/2004/10/xpath-functions" xmlns:sv="http://www.jcp.org/jcr/sv/1.0" xmlns:isp="http://www.sk.de/isp/1.0" xmlns:nt="http://www.jcp.org/jcr/nt/1.0" xmlns:fn="http://www.w3.org/2005/xpath-functions" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:mix="http://www.jcp.org/jcr/mix/1.0" xmlns:rep="internal" sv:name="V1.0.3">
+  <sv:property sv:name="jcr:primaryType" sv:type="Name">
+    <sv:value>isp:sprachportalFolder</sv:value>
+  </sv:property>
+  <sv:property sv:name="jcr:uuid" sv:type="String">
+    <sv:value>b2cdece5-0ba5-41ac-b72e-63ba5f80eed5</sv:value>
+  </sv:property>
+  <sv:property sv:name="isp:keywords" sv:type="String">
+    <sv:value>V1.0.3</sv:value>
+  </sv:property>
+  <sv:property sv:name="isp:lastModified" sv:type="Date">
+    <sv:value>2014-02-19T17:35:52.851+01:00</sv:value>
+  </sv:property>
+  <sv:property sv:name="jcr:created" sv:type="Date">
+    <sv:value>2014-02-27T18:29:30.831+01:00</sv:value>
+  </sv:property>
+  <sv:node sv:name="isp:activityBody">
+    <sv:property sv:name="jcr:primaryType" sv:type="Name">
+      <sv:value>isp:activityBodyImplementation</sv:value>
+    </sv:property>
+    <sv:property sv:name="jcr:uuid" sv:type="String">
+      <sv:value>b440a246-2a94-4f1e-a856-9c53405e6892</sv:value>
+    </sv:property>
+    <sv:property sv:name="isp:implementationType" sv:type="String">
+      <sv:value>TASK</sv:value>
+    </sv:property>
+    <sv:property sv:name="isp:implementationReferenceExternal" sv:type="String">
+      <sv:value>de.sinf.isp.common.process.FormularEingabe</sv:value>
+    </sv:property>
+    <sv:node sv:name="isp:dataMappings">
+      <sv:property sv:name="jcr:primaryType" sv:type="Name">
+	<sv:value>isp:dataMappings</sv:value>
+      </sv:property>
+      <sv:property sv:name="jcr:uuid" sv:type="String">
+	<sv:value>3d4f7256-e099-446f-9aa5-d6d749ca5735</sv:value>
+      </sv:property>
+      <sv:node sv:name="isp:dataMapping">
+	<sv:property sv:name="jcr:primaryType" sv:type="Name">
+	  <sv:value>isp:dataMapping</sv:value>
+	</sv:property>
+	<sv:property sv:name="jcr:uuid" sv:type="String">
+	  <sv:value>a5d1de57-c046-4361-b5ce-67eff5fa0bfe</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:formalParameter" sv:type="String">
+	  <sv:value>ueberschrift</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:actualParameter" sv:type="String">
+	  <sv:value>"Hash-Generierung"</sv:value>
+	</sv:property>
+      </sv:node>
+      <sv:node sv:name="isp:dataMapping">
+	<sv:property sv:name="jcr:primaryType" sv:type="Name">
+	  <sv:value>isp:dataMapping</sv:value>
+	</sv:property>
+	<sv:property sv:name="jcr:uuid" sv:type="String">
+	  <sv:value>8b198978-2cad-4049-9b93-a1456d927cc5</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:formalParameter" sv:type="String">
+	  <sv:value>control1</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:actualParameter" sv:type="String">
+	  <sv:value>[:id "anwendungskuerzel" :label "Anwendungskürzel" :type "TEXT"]</sv:value>
+	</sv:property>
+      </sv:node>
+      <sv:node sv:name="isp:dataMapping">
+	<sv:property sv:name="jcr:primaryType" sv:type="Name">
+	  <sv:value>isp:dataMapping</sv:value>
+	</sv:property>
+	<sv:property sv:name="jcr:uuid" sv:type="String">
+	  <sv:value>29f6a752-4f5d-4149-b63e-a789a9761b68</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:formalParameter" sv:type="String">
+	  <sv:value>daten</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:actualParameter" sv:type="String">
+	  <sv:value>mask-daten</sv:value>
+	</sv:property>
+      </sv:node>
+      <sv:node sv:name="isp:dataMapping">
+	<sv:property sv:name="jcr:primaryType" sv:type="Name">
+	  <sv:value>isp:dataMapping</sv:value>
+	</sv:property>
+	<sv:property sv:name="jcr:uuid" sv:type="String">
+	  <sv:value>7afbad6c-f6fb-455e-86b7-bfaac0f48e9c</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:formalParameter" sv:type="String">
+	  <sv:value>control2</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:actualParameter" sv:type="String">
+	  <sv:value>[:id "bankleitzahl" :label "Bankleitzahl" :type "TEXT"]</sv:value>
+	</sv:property>
+      </sv:node>
+      <sv:node sv:name="isp:dataMapping">
+	<sv:property sv:name="jcr:primaryType" sv:type="Name">
+	  <sv:value>isp:dataMapping</sv:value>
+	</sv:property>
+	<sv:property sv:name="jcr:uuid" sv:type="String">
+	  <sv:value>e48de2ef-6ebc-4b54-8617-45aba8c75eba</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:formalParameter" sv:type="String">
+	  <sv:value>control3</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:actualParameter" sv:type="String">
+	  <sv:value>[:id "lizenzschluessel" :label "zu prüfender Lizenzschlüssel" :type "TEXT"]</sv:value>
+	</sv:property>
+      </sv:node>
+      <sv:node sv:name="isp:dataMapping">
+	<sv:property sv:name="jcr:primaryType" sv:type="Name">
+	  <sv:value>isp:dataMapping</sv:value>
+	</sv:property>
+	<sv:property sv:name="jcr:uuid" sv:type="String">
+	  <sv:value>3366c207-c2f2-4da9-bed0-c8bff0dd2683</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:formalParameter" sv:type="String">
+	  <sv:value>button1</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:actualParameter" sv:type="String">
+	  <sv:value>[:id "ls_generieren" :label "Lizenzschlüssel generieren" ]</sv:value>
+	</sv:property>
+      </sv:node>
+      <sv:node sv:name="isp:dataMapping">
+	<sv:property sv:name="jcr:primaryType" sv:type="Name">
+	  <sv:value>isp:dataMapping</sv:value>
+	</sv:property>
+	<sv:property sv:name="jcr:uuid" sv:type="String">
+	  <sv:value>50734ba6-2637-4002-9290-84b4b2d4b4ba</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:formalParameter" sv:type="String">
+	  <sv:value>button2</sv:value>
+	</sv:property>
+	<sv:property sv:name="isp:actualParameter" sv:type="String">
+	  <sv:value>[:id "ls_pruefen" :label "Lizenzschlüssel prüfen" ]</sv:value>
+	</sv:property>
+      </sv:node>
+    </sv:node>
+  </sv:node>
+</sv:node>

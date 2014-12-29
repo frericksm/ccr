@@ -1,0 +1,30 @@
+[
+;; nt:base
+ {
+  {:db/id #db/id[:db.part/user -1]
+   :jcr.nodetype-definition/name "nt:base"
+   :jcr.nodetype-definition/name true
+   :jcr.nodetype-definition/declared-property-definitions
+   [#db/id[:db.part/user -2]
+    #db/id[:db.part/user -3]]}
+
+  {:db/id #db/id[:db.part/user -2]
+   :jcr.item-definition/name "jcr:primaryType"
+   :jcr.item-definition/mandantory true
+   :jcr.item-definition/auto-created true
+   :jcr.item-definition/protected true
+   :jcr.property-definition/multiple false
+   :jcr.property-definition/type "Name" 
+   }
+
+  {:db/id #db/id[:db.part/user -3]
+   :jcr.item-definition/name "jcr:mixinTypes"
+   :jcr.item-definition/mandantory false
+   :jcr.item-definition/auto-created false
+   :jcr.item-definition/protected true
+   :jcr.property-definition/multiple true
+   :jcr.property-definition/type "Name" 
+   }
+  }
+
+ ]

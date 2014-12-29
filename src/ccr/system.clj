@@ -1,6 +1,5 @@
 (ns ccr.system
-  (:require [ccr.jcr :as j]
-            [ccr.import :as imp]))
+  (:require [ccr.repository :as r]))
 
 (defn system
   "Returns a new instance of the whole application."
@@ -18,11 +17,11 @@
   and start it running. Returns an updated instance of the system."
   [system]
   (->> system
-       (j/start)))
+       (r/start)))
 
 (defn stop
   "Performs side effects to shut down the system and release its
   resources. Returns an updated instance of the system."
   [system]
   (->> system
-       (j/stop)))
+       (r/stop)))
