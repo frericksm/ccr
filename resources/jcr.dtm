@@ -2,61 +2,13 @@
 ;; nodetype definition
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.nodetype-definition/name
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/unique :db.unique/value
-  :db/doc "Der Name des Nodetypes"
-  :db.install/_attribute :db.part/db}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.nodetype-definition/primary-item-name
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/doc "Der Name des Nodetypes"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.nodetype-definition/declared-property-definitions
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/many
-  :db/doc "Die Referenzen auf die child node definitions"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.nodetype-definition/declared-child-node-definitions
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/many
-  :db/doc "Die Referenzen auf die child node definitions"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.nodetype-definition/declared-supertypes
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/many
-  :db/doc "Die Referenzen auf die Nodetypes, die dieser Nodetype erweitert"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.nodetype-definition/primary-item-name
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/doc "The name of the primary item (one of the child items of the nodes of this node type)"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.nodetype-definition/orderable-child-nodes
-  :db/valueType :db.type/boolean
-  :db/cardinality :db.cardinality/one
-  :db/doc "True if nodes of this type must support orderable child nodes"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.nodetype-definition/abstract
-  :db/valueType :db.type/boolean
-  :db/cardinality :db.cardinality/one
-  :db/doc "True if this is an abstract node type; returns false otherwise."
-  :db.install/_attribute :db.part/db}
+  {:db/id #db/id[:db.part/db]
+   :db/ident :jcr.nodetype-definition/abstract
+   :db/valueType :db.type/boolean
+   :db/cardinality :db.cardinality/one
+   :db/doc "True if this is an abstract node type; returns false otherwise."
+   :db.install/_attribute :db.part/db}}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.nodetype-definition/mixin
@@ -89,7 +41,7 @@
  :db.install/_attribute :db.part/db}
 
 {:db/id #db/id[:db.part/db]
- :db/ident :jcr.property-definition/required-type
+ :db/ident :jcr.property-definition/type
  :db/valueType :db.type/ref
  :db/cardinality :db.cardinality/one
  :db/doc "Gets the required type of the property."

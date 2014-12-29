@@ -16,8 +16,8 @@
    [ccr.repository :as repository]
    [ccr.session :as session]
    [ccr.tree :as tree]
-   [ccr.cnd :as cnd]
-   [datomic.api :as d  :only [q db]]
+   [ccr.cnd :as cnd
+    [datomic.api :as d  :only [q db]]]
    ))
 
 (def system
