@@ -1,0 +1,89 @@
+  cnd ::= {ns_mapping | node_type_def};
+
+  ns_mapping ::= <#"\s*"> <"<"> <#"\s*">  prefix <#"\s*"> <"="> <#"\s*"> uri <#"\s*"> <">">;
+
+  prefix ::= string;
+
+  uri ::= quoted_uri | unquoted_uri;
+
+  node_type_def ::= <#"\s*"> node_type_name [<#"\s*"> supertypes] {<#"\s*"> node_type_attribute} <#"\s*"> {property_def | child_node_def};
+
+  child_node_def ::= <#"\s*"> <"+"> <#"\s*"> node_name [<#"\s*"> required_types] [<#"\s*"> default_type] {<#"\s*"> node_attribute}
+
+  node_type_name ::= <"["> string <"]">;
+
+  supertypes ::= <">"> <#"\s*"> string_list;
+
+  node_type_attribute ::= orderable | mixin | abstract | query | primary_item;
+
+  orderable ::= "ORDERABLE" | "orderable" | "ord" | "o";
+
+  mixin ::= "MIXIN" | "mixin" | "mix" | "m";
+
+  abstract ::= "ABSTRACT" | "abstract" | "abs" | "a";
+
+  query ::= "noquery" | "nq" | "query" | "q";
+ 
+  primary_item ::= ('PRIMARYITEM'| 'primaryitem'| '!') <#"\s*"> string;
+
+  property_def ::= <#"\s*"> <"-"> <#"\s*"> property_name [<#"\s*"> property_type_decl] [<#"\s*"> default_values] [<#"\s*"> property_attributes] [<#"\s*"> value_constraints];
+
+  property_name ::= string | '*';
+
+  property_type_decl ::= <"("> property_type <")">;
+
+  property_type ::= type_string | type_binary | type_long | type_double |
+                    type_boolean | type_date | type_name | type_path |
+                    type_weak_reference | type_reference | type_undefined;
+      
+  type_string  ::= "STRING" | "String" | "string";
+  type_binary  ::= "BINARY" | "Binary" | "binary";
+  type_long    ::= "LONG" | "Long" | "long";
+  type_double  ::= "DOUBLE" | "Double" | "double";
+  type_boolean ::= "BOOLEAN" | "Boolean" | "boolean";
+  type_date    ::= "DATE" | "Date" | "date";
+  type_name    ::= "NAME" | "Name" | "name";
+  type_path    ::= "PATH" | "Path" | "path";
+  type_weak_reference ::= "WEAKREFERENCE" | "Weakreference" | "weakreference";
+  type_reference ::=  "REFERENCE" | "Reference" | "reference";
+  type_undefined ::= "UNDEFINED" | "Undefined" | "undefined" | "*";
+
+  default_values ::= <"="> <#"\s*"> string_list;
+
+  value_constraints ::= <"<"> <#"\s*"> string_list;
+
+  node_name ::= string | '*';
+
+  required_types ::= <"("> string_list <")">;
+
+  default_type ::= <"="> <#"\s*"> string;
+
+  property_attributes ::= (<#"\s*"> property_attribute)+;
+
+  property_attribute ::= autocreated | mandatory | protected | opv | multiple ;
+
+  node_attribute ::= autocreated | mandatory | protected | opv | sns;
+
+  autocreated ::= ('AUTOCREATED' | 'autocreated' | 'aut' | 'a' );
+
+  mandatory ::= ('MANDATORY' | 'mandatory' | 'man' | 'm');
+
+  protected ::= ('PROTECTED' | 'protected' | 'pro' | 'p');
+
+  opv ::= 'COPY' | 'VERSION' | 'INITIALIZE' | 'COMPUTE' | 'IGNORE' | 'ABORT' | ('OPV' '?');
+
+  sns ::= ('SNS' | 'sns' );
+
+  multiple ::= "MULTIPLE" | "multiple" | "mul";
+
+  string_list ::= string {<#"\s*"> <","> <#"\s*"> string};
+
+  string ::= quoted_string | unquoted_string;
+
+  quoted_string ::= <"'"> unquoted_string <"'">;
+
+  unquoted_string ::= #"[A-Za-z0-9:_]*";
+
+  quoted_uri ::= <"'"> unquoted_uri <"'">;
+
+  unquoted_uri ::= #"[A-Za-z0-9:_/\.]*";

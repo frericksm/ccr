@@ -1,9 +1,11 @@
 (ns ccr.repository
   (:require [datomic.api :as d  :only [q db]])
-  (:require clojure.pprint))
+  (:require clojure.pprint)
+  (:require [clojure.java.io :as io] )
+  )
 
 
-(def schema-tx (read-string (slurp "resources/jcr.dtm")))
+(def schema-tx (read-string (slurp (io/resource "jcr.dtm"))))
 
 (defn create-schema [conn]
   @(d/transact conn schema-tx))

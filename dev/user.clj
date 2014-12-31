@@ -18,6 +18,9 @@
    [ccr.tree :as tree]
    [ccr.cnd :as cnd]
    [datomic.api :as d  :only [q db]]
+   [clojure.zip :as zip]
+   [clojure.data.zip :as z]
+   [clojure.data.zip.xml :as zx]
    ))
 
 (def system
