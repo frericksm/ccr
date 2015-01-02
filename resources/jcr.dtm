@@ -66,10 +66,10 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.property/values
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/many
-  :db/doc "Reference of the value"
+  :db/ident :jcr.property/value-attr
+  :db/valueType :db.type/keyword 
+  :db/cardinality :db.cardinality/one
+  :db/doc "Der Name des datomic attributes, das den Value der Property enthält"
   :db.install/_attribute :db.part/db}
 
  ;; value
@@ -78,6 +78,13 @@
   :db/ident :jcr.value/name
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
+  :db/doc "Value vom Typ NAME"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/names
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/many
   :db/doc "Values vom Typ NAME"
   :db.install/_attribute :db.part/db}
  
@@ -89,12 +96,26 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/strings
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ STRING"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/binary
   :db/valueType :db.type/bytes
   :db/cardinality :db.cardinality/one
   :db/doc "Value vom Typ BINARY"
   :db.install/_attribute :db.part/db}
 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/binarys
+  :db/valueType :db.type/bytes
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ BINARY"
+  :db.install/_attribute :db.part/db}
+ 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/long
   :db/valueType :db.type/long
@@ -103,12 +124,26 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/longs
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ LONG"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/double
   :db/valueType :db.type/double
   :db/cardinality :db.cardinality/one
   :db/doc "Value vom Typ DOUBLE"
   :db.install/_attribute :db.part/db}
 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/doubles
+  :db/valueType :db.type/double
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ DOUBLE"
+  :db.install/_attribute :db.part/db}
+ 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/date
   :db/valueType :db.type/instant
@@ -117,6 +152,13 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/dates
+  :db/valueType :db.type/instant
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ DATE"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/boolean
   :db/valueType :db.type/boolean
   :db/cardinality :db.cardinality/one
@@ -124,12 +166,27 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/booleans
+  :db/valueType :db.type/boolean
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ BOOLEAN"
+  :db.install/_attribute :db.part/db}
+ 
+ {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/reference
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
   :db/doc "Value vom Typ REFERENCE"
   :db.install/_attribute :db.part/db}
 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/references
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values vom Typ REFERENCE"
+  :db.install/_attribute :db.part/db}
+ ;;;;;;;;;;;
+ 
   ;; DB functions
 
  {:db/id #db/id[:db.part/user]

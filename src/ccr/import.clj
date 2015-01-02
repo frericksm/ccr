@@ -29,16 +29,20 @@
         (xml/parse x)
         (zip/xml-zip x)))
 
-(defn trans-prop-val [uuid2tempid type val]
-  (hash-set 
-   (case type
-     "Date" (instant/read-instant-timestamp val) 
-     "Long" (Long/valueOf val)
-     "String" val
-     "Name" val
-     "Reference" (get uuid2tempid val)
-     "Boolean" (Boolean/valueOf val)
-     )))
+(defn trans-single-value [uuid2tempid type val]
+  (case type
+       "Date" (instant/read-instant-timestamp val) 
+       "Long" (Long/valueOf val)
+       "String" val
+       "Name" val
+       "Reference" (get uuid2tempid val)
+       "Boolean" (Boolean/valueOf val)
+       ))
+
+(defn trans-prop-val [uuid2tempid type val cardinality-many]
+  (if cardinality-many
+    (map (partial trans-single-value uuid2tempid type) val)
+    (trans-single-value uuid2tempid type)))
 
 (defn trans-prop-name [name]
   (-> name
@@ -62,9 +66,9 @@
         (first x)))
 
 (defn jcr-value-attr [type many]
-  (let [card (if many "values" "value")
-        t (clojure.string/lower-case type)]
-    (->> (format "jcr.property.%s/%s"  t card )
+  (let [card (if many "s" "")
+        t (str (clojure.string/lower-case type) card)]
+    (->> (format "jcr.value/%s"  t )
          keyword)))
 
 (defn node-tx
@@ -78,12 +82,14 @@
                           (map (fn [p]
                                  (let [type (:type p)
                                        name (:name p)
-                                       value (:value p)]
+                                       value (:value p)
+                                       cardinality-many (coll? value) 
+                                       val-attr (jcr-value-attr type cardinality-many)]
                                    {:db/id (get ps2tempids name)
                                     :jcr.property/name name
-                                    :jcr.property/type type
-                                    :jcr.property/values
-                                    (trans-prop-val uuid2tempid type value)
+                                    :jcr.property/value-attr val-attr
+                                    val-attr
+                                    (trans-prop-val uuid2tempid type value cardinality-many)
                                     }))))
         uuid         (->> ps
                           (filter #(= "jcr:uuid" (:name %)))

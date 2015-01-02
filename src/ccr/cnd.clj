@@ -13,10 +13,10 @@
   (insta/parser (slurp (io/resource "cnd.ebnf"))
                 :output-format :enlive))
 
-(defn builtin-nodetypes-zipper
-  "Liefert einen Zipper für den Inhalt einer Datei, die Nodetypes im Format Compact Nodetype Definition (CND) enthält. Wird keine Datei übergeben, dann werden die builtin-Nodetypes geliefert"
+(defn builtin-nodetypes
+  "Liefert den geparsten Inhalt einer Datei, die Nodetypes in der Compact Nodetype Definition (CND) enthält. Wird keine Datei übergeben, dann werden die builtin-Nodetypes aus 'jcr2-nodetypes.cnd' eingelesen"
   
-  ([] (builtin-nodetypes-zipper "jcr2-nodetypes.cnd"))
+  ([] (builtin-nodetypes "jcr2-nodetypes.cnd"))
 
   ([resource_on_claspath]
      (as-> resource_on_claspath x
@@ -37,32 +37,38 @@
         protected      (exists? node [:node_attribute :protected])
         opv            (->> (html/select node [:node_attribute :opv
                                                :string html/text-node])
-                            (filter (comp not nil?)))
+                            (filter (comp not nil?))
+                            (first))
         sns            (exists? node [:node_attribute :sns])]
-    [{:jcr.property/name "jcr:name"
-      :jcr.property/type "Name"
-      :jcr.property/values #{node_name}}
-     {:jcr.property/name "jcr:autoCreated"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{autocreated}}
-     {:jcr.property/name "jcr:mandatory"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{mandatory}}
-     {:jcr.property/name "jcr:onParentVersion"
-      :jcr.property/type "String"
-      :jcr.property/values (set opv)}
-     {:jcr.property/name "jcr:protected"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{protected}}
-     {:jcr.property/name "jcr:requiredPrimaryTypes"
-      :jcr.property/type "Name"
-      :jcr.property/values (set required_types)}
-     {:jcr.property/name "jcr:defaultPrimaryType"
-      :jcr.property/type "Name"
-      :jcr.property/values (set default_type)}
-     {:jcr.property/name "jcr:sameNameSiblings"
-      :jcr.property/type "Name"
-      :jcr.property/values #{sns}}]))
+    {:jcr.node/name "jcr:childNodeDefinition"
+     :jcr.node/properties
+     [{:jcr.property/name "jcr:primaryType"
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.value/name "nt:childNodeDefinition"}
+      {:jcr.property/name "jcr:name"
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.value/name  node_name}
+      {:jcr.property/name "jcr:autoCreated"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean autocreated}
+      {:jcr.property/name "jcr:mandatory"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean mandatory}
+      {:jcr.property/name "jcr:onParentVersion"
+       :jcr.property/value-attr :jcr.value/string
+       :jcr.value/string opv}
+      {:jcr.property/name "jcr:protected"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean protected}
+      {:jcr.property/name "jcr:requiredPrimaryTypes"
+       :jcr.property/value-attr :jcr.value/names
+       :jcr.value/names (set required_types)}
+      {:jcr.property/name "jcr:defaultPrimaryType"
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.value/name default_type}
+      {:jcr.property/name "jcr:sameNameSiblings"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean sns}]}))
 
 (defn property-definition  [node]
   (let [property_name (first (html/select node [:property_name html/text-node]))
@@ -82,48 +88,54 @@
         protected   (exists? node [:property_attribute :protected])
         opv         (->> (html/select node [:property_attribute :opv
                                             :string html/text-node])
-                         (filter (comp not nil?)))
+                         (filter (comp not nil?))
+                         (first))
         multiple    (exists? node [:property_attribute :multiple])
         query_ops   (html/select node [:property_attribute :query_ops
                                        :operator html/text-node])
         full_text   (not (exists? node [:property_attribute :no_full_text]))
         query_orderable (not (exists? node [:property_attribute :no_query_order]))]
-    [{:jcr.property/name "jcr:name"
-      :jcr.property/type "Name"
-      :jcr.property/values #{property_name}}
-     {:jcr.property/name "jcr:autoCreated"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{autocreated}}
-     {:jcr.property/name "jcr:mandatory"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{mandatory}}
-     {:jcr.property/name "jcr:onParentVersion"
-      :jcr.property/type "String"
-      :jcr.property/values (set opv)}
-     {:jcr.property/name "jcr:protected"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{protected}}
-     {:jcr.property/name "jcr:requiredType"
-      :jcr.property/type "String"
-      :jcr.property/values #{prop_type}}
-     {:jcr.property/name "jcr:valueConstraints"
-      :jcr.property/type "String"
-      :jcr.property/values (set value_constraints)}
-     {:jcr.property/name "jcr:defaultValues"
-      :jcr.property/type "Undefined"
-      :jcr.property/values (set default_values)}
-     {:jcr.property/name "jcr:multiple"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{multiple}}
-     {:jcr.property/name "jcr:availableQueryOperators"
-      :jcr.property/type "Name"
-      :jcr.property/values (set query_ops)}
-     {:jcr.property/name "jcr:isFullTextSearchable"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{full_text}}
-     {:jcr.property/name "jcr:isQueryOrderable"
-      :jcr.property/type "Boolean"
-      :jcr.property/values #{query_orderable}}]))
+    {:jcr.node/name "jcr:propertyDefinition"
+     :jcr.node/properties
+     [{:jcr.property/name "jcr:primaryType"
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.value/name "nt:propertyDefinition"}
+      {:jcr.property/name "jcr:name"
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.value/name  property_name}
+      {:jcr.property/name "jcr:autoCreated"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean autocreated}
+      {:jcr.property/name "jcr:mandatory"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean mandatory}
+      {:jcr.property/name "jcr:onParentVersion"
+       :jcr.property/value-attr :jcr.value/string
+       :jcr.value/string opv}
+      {:jcr.property/name "jcr:protected"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean protected}
+      {:jcr.property/name "jcr:requiredType"
+       :jcr.property/value-attr :jcr.value/string
+       :jcr.value/string prop_type}
+      {:jcr.property/name "jcr:valueConstraints"
+       :jcr.property/value-attr :jcr.value/strings
+       :jcr.value/strings (set value_constraints)}
+      {:jcr.property/name "jcr:defaultValues"
+       :jcr.property/value-attr :jcr.value/strings
+       :jcr.value/strings (set default_values)}
+      {:jcr.property/name "jcr:multiple"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean multiple}
+      {:jcr.property/name "jcr:availableQueryOperators"
+       :jcr.property/value-attr :jcr.value/names
+       :jcr.value/names (set query_ops)}
+      {:jcr.property/name "jcr:isFullTextSearchable"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean full_text}
+      {:jcr.property/name "jcr:isQueryOrderable"
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean query_orderable}]}))
 
 (defn nodetype [node]
   (let [nt_name         (first (html/select node #{[:node_type_name
@@ -134,7 +146,8 @@
         primaryitem     (->> (html/select node #{[:node_type_attribute
                                                   :primary_item
                                                   :string html/text-node]})
-                             (filter #(not (nil? %))))
+                             (filter #(not (nil? %)))
+                             (first))
         orderable       (exists? node [:node_type_attribute :orderable])
         supertypes      (html/select node  #{[:supertypes :string html/text-node]})
         property_defs   (as-> node x
@@ -145,36 +158,32 @@
                               (map node-definition x))
         ]
     {:jcr.node/name nt_name
-     :jcr.node/children [property_defs child_node_defs]
+     :jcr.node/children (concat  property_defs child_node_defs)
      :jcr.node/properties
-     [{:jcr.property/name "jcr:nodeTypeName"
-       :jcr.property/type "Name"
-       :jcr.property/values #{nt_name}
-       }
+     [{:jcr.property/name "jcr:primaryType"
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.value/name "nt:nodeType"}
+      {:jcr.property/name "jcr:nodeTypeName"
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.value/name nt_name}
       {:jcr.property/name "jcr:supertypes"
-       :jcr.property/type "Name"
-       :jcr.property/values (set supertypes)
-       }
+       :jcr.property/value-attr :jcr.value/names
+       :jcr.value/names (set supertypes)}
       {:jcr.property/name "jcr:isAbstract"
-       :jcr.property/type "Boolean"
-       :jcr.property/values (set [abstract])
-       }
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean abstract}
       {:jcr.property/name "jcr:isQueryable"
-       :jcr.property/type "Boolean"
-       :jcr.property/values (set [queryable])
-       }
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean queryable}
       {:jcr.property/name "jcr:isMixin"
-       :jcr.property/type "Boolean"
-       :jcr.property/values (set [mixin])
-       }
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean mixin}
       {:jcr.property/name "jcr:hasOrderableChildNodes"
-       :jcr.property/type "Boolean"
-       :jcr.property/values (set [orderable])
-       }
+       :jcr.property/value-attr :jcr.value/boolean
+       :jcr.value/boolean orderable}
       {:jcr.property/name "jcr:primaryItemName"
-       :jcr.property/type "Name"
-       :jcr.property/values (set primaryitem)
-       }]}))
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.value/name primaryitem}]}))
 
 (defn nodetypes
   "Liefert eine Map die UUIDs auf Datomic Tempids abbildet.
