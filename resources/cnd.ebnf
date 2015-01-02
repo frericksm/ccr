@@ -60,10 +60,21 @@
 
   property_attributes ::= (<#"\s*"> property_attribute)+;
 
-  property_attribute ::= autocreated | mandatory | protected | opv | multiple ;
+  property_attribute ::= autocreated | mandatory | protected |
+                         opv | multiple | query_ops | no_full_text |
+                         no_query_order;
 
+  no_query_order ::= ('noqueryorder' | 'nqord');
+
+  query_ops ::= ('queryops' | 'qop')
+                (('''operator {','operator}''') | '?');
+                
+  operator ::= '=' | '<>' | '<' | '<=' | '>' | '>=' | 'LIKE';
+                         
   node_attribute ::= autocreated | mandatory | protected | opv | sns;
 
+  no_full_text ::= ('NOFULLTEXT' | 'nofulltext' | 'nof');
+  
   autocreated ::= ('AUTOCREATED' | 'autocreated' | 'aut' | 'a' );
 
   mandatory ::= ('MANDATORY' | 'mandatory' | 'man' | 'm');
