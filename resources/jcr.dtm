@@ -1,4 +1,6 @@
-[
+[;; The content model of a jcr repository.
+ ;; It consists of attributes for workspace, node, property and value
+ 
  ;; workspace
 
  {:db/id #db/id[:db.part/db]
@@ -6,14 +8,14 @@
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/unique :db.unique/value
-  :db/doc "Der Name des Workspaces"
+  :db/doc "The name of a workspace"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.workspace/rootNode
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
-  :db/doc "Die Root-Node des Workspaces"
+  :db/doc "The root node of a workspace"
   :db.install/_attribute :db.part/db}
 
 
@@ -23,7 +25,7 @@
   :db/ident :jcr.node/name
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
-  :db/doc "Der Name der Node"
+  :db/doc "The name of a node"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
@@ -31,7 +33,7 @@
   :db/isComponent true
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/many
-  :db/doc "Die Child-Nodes der Node"
+  :db/doc "The child nodes of a node"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
@@ -39,14 +41,14 @@
   :db/isComponent true
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/many
-  :db/doc "Die Properties der Node"
+  :db/doc "The properties of a node"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.node/position
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
-  :db/doc "Die Position innerhalb der Children der Parent Node"
+  :db/doc "The positiion of a node in the sequence of the child nodes of the parent node"
   :db.install/_attribute :db.part/db}
 
  ;; property
@@ -55,21 +57,21 @@
   :db/ident :jcr.property/name
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
-  :db/doc "Der Name der Property"
+  :db/doc "The name of a property"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.property/type
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
-  :db/doc "Der Typ der Property"
+  :db/doc "The type of a property"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.property/value-attr
   :db/valueType :db.type/keyword 
   :db/cardinality :db.cardinality/one
-  :db/doc "Der Name des datomic attributes, das den Value der Property enthält"
+  :db/doc "The name of the datomic attribute which contains the value of this property entitity"
   :db.install/_attribute :db.part/db}
 
  ;; value
@@ -78,114 +80,114 @@
   :db/ident :jcr.value/name
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
-  :db/doc "Value vom Typ NAME"
+  :db/doc "Value of type NAME"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/names
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/many
-  :db/doc "Values vom Typ NAME"
+  :db/doc "Values of type NAME"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/string
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
-  :db/doc "Value vom Typ STRING"
+  :db/doc "Value of type STRING"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/strings
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/many
-  :db/doc "Values vom Typ STRING"
+  :db/doc "Values of type STRING"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/binary
   :db/valueType :db.type/bytes
   :db/cardinality :db.cardinality/one
-  :db/doc "Value vom Typ BINARY"
+  :db/doc "Value of type BINARY"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/binarys
   :db/valueType :db.type/bytes
   :db/cardinality :db.cardinality/many
-  :db/doc "Values vom Typ BINARY"
+  :db/doc "Values of type BINARY"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/long
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
-  :db/doc "Value vom Typ LONG"
+  :db/doc "Value of type LONG"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/longs
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/many
-  :db/doc "Values vom Typ LONG"
+  :db/doc "Values of type LONG"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/double
   :db/valueType :db.type/double
   :db/cardinality :db.cardinality/one
-  :db/doc "Value vom Typ DOUBLE"
+  :db/doc "Value of type DOUBLE"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/doubles
   :db/valueType :db.type/double
   :db/cardinality :db.cardinality/many
-  :db/doc "Values vom Typ DOUBLE"
+  :db/doc "Values of type DOUBLE"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/date
   :db/valueType :db.type/instant
   :db/cardinality :db.cardinality/one
-  :db/doc "Value vom Typ DATE"
+  :db/doc "Value of type DATE"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/dates
   :db/valueType :db.type/instant
   :db/cardinality :db.cardinality/many
-  :db/doc "Values vom Typ DATE"
+  :db/doc "Values of type DATE"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/boolean
   :db/valueType :db.type/boolean
   :db/cardinality :db.cardinality/one
-  :db/doc "Value vom Typ BOOLEAN"
+  :db/doc "Value of type BOOLEAN"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/booleans
   :db/valueType :db.type/boolean
   :db/cardinality :db.cardinality/many
-  :db/doc "Values vom Typ BOOLEAN"
+  :db/doc "Values of type BOOLEAN"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/reference
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
-  :db/doc "Value vom Typ REFERENCE"
+  :db/doc "Value of type REFERENCE"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/references
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/many
-  :db/doc "Values vom Typ REFERENCE"
+  :db/doc "Values of type REFERENCE"
   :db.install/_attribute :db.part/db}
- ;;;;;;;;;;;
+
  
   ;; DB functions
 
@@ -195,15 +197,15 @@
   :db/fn #db/fn {:lang "clojure"
                  :params [db scope-id scope-attr new-id pos-attr]
                  :code [[:db/add new-id pos-attr
-                         (->>
+                         (as-> 
                           ;; The full set of children
-                          (scope-attr (datomic.api/entity db scope-id))
+                          (get (datomic.api/entity db scope-id) scope-attr) x
                           ;; Get only the numerical position attr
-                          (map pos-attr)
+                          (map pos-attr x)
                           ;; Get the highest one
-                          (reduce max 0)
+                          (reduce max 0 x)
                           ;; And increment by one
-                          (inc))]]}}
+                          (inc x))]]}}
  
  
  {:db/id #db/id[:db.part/user]
@@ -215,15 +217,15 @@
                  :code (map-indexed
                         (fn [idx entity-id]
                           [:db/add entity-id sorted-attr idx])
-                        (->>
+                        (as->
                          ;; The full set of children
-                         (scope-attr (datomic.api/entity db scope-id))
+                         (get (datomic.api/entity db scope-id) scope-attr) x
                          ;; Sort them by the numerical sorted-attr
-                         (sort-by sorted-attr)
+                         (sort-by sorted-attr x)
                          ;; Get the entity IDs
-                         (map :db/id)
+                         (map :db/id x)
                          ;; Remove the retracted entity from the list
-                         (filter (partial not= retracted-eid))))}}
+                         (filter (partial not= retracted-eid)) x))}}
 
  {:db/id #db/id[:db.part/user]
   :db/ident :set-position-in-scope
