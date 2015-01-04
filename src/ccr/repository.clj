@@ -1,8 +1,9 @@
 (ns ccr.repository
-  (:require [datomic.api :as d  :only [q db]])
-  (:require clojure.pprint)
-  (:require [clojure.java.io :as io] )
-  )
+  (:require [datomic.api :as d  :only [q db]]
+            [clojure.pprint]
+            [clojure.java.io :as io]
+            [ccr.nodetypes :as nt]
+            ))
 
 
 (def schema-tx (read-string (slurp (io/resource "jcr.dtm"))))
@@ -25,6 +26,7 @@
   (let [created (d/create-database uri)
         conn (d/connect uri)]
     (if created (do  (create-schema conn)
+                     (nt/load-builtin-node-types conn)
                      (create-workspace conn "default")))
     {:uri uri
      :connection conn}))

@@ -30,7 +30,7 @@
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.node/children
-  :db/isComponent true
+  ;:db/isComponent true
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/many
   :db/doc "The child nodes of a node"

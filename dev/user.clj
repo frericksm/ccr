@@ -17,6 +17,7 @@
    [ccr.session :as session]
    [ccr.tree :as tree]
    [ccr.cnd :as cnd]
+   [ccr.nodetypes :as nt]
    [datomic.api :as d  :only [q db]]
    [clojure.zip :as zip]
    [clojure.data.zip :as z]

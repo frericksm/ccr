@@ -1,17 +1,32 @@
 (ns ccr.nodetypes
   (:require [ccr.cnd :as cnd]
-            [clojure.data.xml :as xml]
-            [clojure.data.zip.xml :as zx]
-            [clojure.data.zip :as z]
-            [clojure.zip :as zip]
-            [datomic.api :as d  :only [q db]]
-            [clojure.java.io :as io]
-            [clojure.instant :as instant]
-            [clojure.pprint :as pp]))
+            [datomic.api :as d  :only [q db]]))
 
 (defn load-node-types
-  ""
+  "Loads the builtin nodetypes to datomic connection"
+  [connection tx-data]
+  (d/transact connection tx-data))
+
+(defn load-builtin-node-types
+  "Loads the builtin nodetypes to datomic connection"
   [connection]
-  (->> (cnd/builtin-nodetypes)
-       (cnd/nodetypes)
-       (d/transact connection)))
+  (load-node-types connection  
+                   (as-> (cnd/builtin-nodetypes) x
+                         (cnd/node-to-tx x))))
+
+(defn nodetype [db nodetype-name]
+  (as-> (d/q '[:find ?e 
+               :in $ ?v
+               :where  
+               [?p1 :jcr.property/name "jcr:primaryType"]
+               [?p1 :jcr.property/value-attr ?va1]
+               [?p1 ?va1 "nt:nodeType"]
+               [?p2 :jcr.property/name "jcr:nodeTypeName"]
+               [?p2 :jcr.property/value-attr ?va2]
+               [?p2 ?va2 ?v]
+               [?e :jcr.node/properties ?p1]
+               [?e :jcr.node/properties ?p2]]
+             db nodetype-name) x
+        (map first x)
+        (first x)
+        (d/pull db '[:* {:jcr.node/children [*]}] x )))

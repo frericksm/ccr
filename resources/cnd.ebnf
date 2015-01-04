@@ -1,3 +1,5 @@
+(* See  http://www.day.com/maven/jcr/2.0/25_Appendix.html *)
+
   cnd ::= {ns_mapping | node_type_def};
 
   ns_mapping ::= <#"\s*"> <"<"> <#"\s*">  prefix <#"\s*"> <"="> <#"\s*"> uri <#"\s*"> <">">;

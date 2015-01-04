@@ -1,43 +1,20 @@
 (ns ccr.cnd
   (:require [instaparse.core :as insta]
             [clojure.java.io :as io]
-            [clojure.zip :as zip]
-            [clojure.data.zip :as z]
-            [clojure.data.zip.xml :as zx]
             [net.cgrand.enlive-html :as html]
             [datomic.api :as d  :only [q db]]))
-
-;; http://www.day.com/maven/jcr/2.0/25_Appendix.html
-
-(def cnd-parser
-  (insta/parser (slurp (io/resource "cnd.ebnf"))
-                :output-format :enlive))
-
-(defn builtin-nodetypes
-  "Liefert den geparsten Inhalt einer Datei, die Nodetypes in der Compact Nodetype Definition (CND) enthält. Wird keine Datei übergeben, dann werden die builtin-Nodetypes aus 'jcr2-nodetypes.cnd' eingelesen"
-  
-  ([] (builtin-nodetypes "jcr2-nodetypes.cnd"))
-
-  ([resource_on_claspath]
-     (as-> resource_on_claspath x
-           (io/resource x)
-           (slurp x)
-           (cnd-parser x))))
 
 (defn exists?
   "Returns true, if the selector applied to the node returns an empty list"
   [node selector]
   (not (empty? (html/select node  selector))))
 
-(defn filter-nil-vals
-  [entities]
-  (->> entities
-       (map (fn [n]
-              (select-keys n
-                           (filter #(not (nil? (get n %)))
-                                        (keys n)))))))
+(defn remove-nil-vals
+  "Returns a map which is m but with all entries removed where the value for a key is nil"
+  [m]
+  (select-keys m (filter #(not (nil? (get m %))) (keys m))))
 
-(defn node-definition-properties
+(defn node-definition-properties-tx
   ""
   [node]
   (let [node_name      (first (html/select node [:node_name html/text-node])) 
@@ -53,7 +30,7 @@
                             (filter (comp not nil?))
                             (first))
         sns            (exists? node [:node_attribute :sns])]
-    (filter-nil-vals
+    (map remove-nil-vals
      [{:db/id (d/tempid ":db.part/user")
        :jcr.property/name "jcr:primaryType"
        :jcr.property/value-attr :jcr.value/name
@@ -91,17 +68,19 @@
        :jcr.property/value-attr :jcr.value/boolean
        :jcr.value/boolean sns}])))
 
-(defn node-definition
+(defn node-definition-tx
   ""
   [node]
-  (let [node_definition_properties (node-definition-properties node)]
+  (let [node_definition_properties (node-definition-properties-tx node)]
     (concat
      [{:db/id (d/tempid ":db.part/user")
        :jcr.node/name "jcr:childNodeDefinition"
        :jcr.node/properties (->> node_definition_properties (map :db/id))}]
      node_definition_properties)))
 
-(def proptype-map
+ 
+(def property-type-map
+  "Map of parser tag to JCR property type"
   {:type_string         "String"
    :type_binary         "Binary"
    :type_long           "Long"
@@ -110,22 +89,20 @@
    :type_date           "Date"
    :type_name           "Name"
    :type_path           "Path"
-   :type_weak_reference "WeakReference"
+   :type_weak_reference "Weakreference"
    :type_reference      "Reference"
    :type_undefined      "Undefined"})
 
-(defn property-definition-properties  [node]
+(defn property-definition-properties-tx  [node]
   (let [property_name (first (html/select node [:property_name html/text-node]))
         prop_type     (->> (html/select node [:property_type html/first-child])
                            (map :tag)
-                           (map proptype-map)
+                           (map property-type-map)
                            first)
-        value_constraints (html/select node [:property_type
-                                             :value_constraints
+        value_constraints (html/select node [:value_constraints
                                              :string
                                              html/text-node])
-        default_values    (html/select node [:property_type
-                                             :default_values
+        default_values    (html/select node [:default_values
                                              :string
                                              html/text-node])
         autocreated (exists? node [:property_attribute :autocreated])
@@ -140,7 +117,7 @@
                                        :operator html/text-node])
         full_text   (not (exists? node [:property_attribute :no_full_text]))
         query_orderable (not (exists? node [:property_attribute :no_query_order]))]
-    (filter-nil-vals
+    (map remove-nil-vals
      [{:db/id (d/tempid ":db.part/user")
        :jcr.property/name "jcr:primaryType"
        :jcr.property/value-attr :jcr.value/name
@@ -194,15 +171,15 @@
        :jcr.property/value-attr :jcr.value/boolean
        :jcr.value/boolean query_orderable}])))
 
-(defn property-definition  [node]
-  (let [property_definition_properties (property-definition-properties node)]
+(defn property-definition-tx  [node]
+  (let [property_definition_properties (property-definition-properties-tx node)]
     (concat
      [{:db/id (d/tempid ":db.part/user")
        :jcr.node/name "jcr:propertyDefinition"
        :jcr.node/properties (map :db/id property_definition_properties)}]
      property_definition_properties)))
 
-(defn nodetype-properties [node]
+(defn nodetype-properties-tx [node]
   (let [nt_name         (first (html/select node #{[:node_type_name
                                                     html/text-node]}))
         abstract        (exists? node [:node_type_attribute :abstract])
@@ -215,7 +192,7 @@
                              (first))
         orderable       (exists? node [:node_type_attribute :orderable])
         supertypes      (html/select node  #{[:supertypes :string html/text-node]})]
-    (filter-nil-vals
+    (map remove-nil-vals
      [{:db/id (d/tempid ":db.part/user")
        :jcr.property/name "jcr:primaryType"
        :jcr.property/value-attr :jcr.value/name
@@ -249,18 +226,18 @@
        :jcr.property/value-attr :jcr.value/name
        :jcr.value/name primaryitem}])))
 
-(defn nodetype [node]
+(defn nodetype-tx [node]
   (let [nt_name         (first (html/select node #{[:node_type_name
                                                     html/text-node]}))
         property_defs   (as-> node x
                               (html/select x [:property_def])
-                              (map property-definition x)
+                              (map property-definition-tx x)
                               (apply concat x))
         child_node_defs (as-> node x
                               (html/select x [:child_node_def])
-                              (map node-definition x)
+                              (map node-definition-tx x)
                               (apply concat x))
-        nodetype_properties (nodetype-properties node)]
+        nodetype_properties (nodetype-properties-tx node)]
     (concat
      [{:db/id (d/tempid ":db.part/user")
        :jcr.node/name nt_name
@@ -270,11 +247,27 @@
      child_node_defs
      nodetype_properties)))
 
-(defn nodetypes
-  "Liefert eine Map die UUIDs auf Datomic Tempids abbildet.
-   Dazu werden alle Properties mit dem Namen \"jcr:uuid\" ermittlet. "
+(defn node-to-tx
+  "Returns a datomic transaction of the syntax tree 'node' generated by the function 'parse-cnd-resource'. This transaction loads all nodetypes defined in 'node' as jcr content. That is entities consisting of the node attributes defined in 'jcr.dtm'"
   [node]
   (as-> node x
         (html/select x [:node_type_def])
-        (map nodetype x)
+        (map nodetype-tx x)
         (apply concat x)))
+
+(def cnd-parser
+  "A function with one parameter of type String. Assumes that the string is in cnd format. Parses the string and returns the syntax tree in :enlive format"
+    (insta/parser (slurp (io/resource "cnd.ebnf")) :output-format :enlive))
+
+(defn parse-cnd-resource 
+  "Returns the syntax tree of the parsed cnd file"
+  [resource_on_claspath]
+  (as-> resource_on_claspath x
+        (io/resource x)
+        (slurp x)
+        (cnd-parser x)))
+
+(defn builtin-nodetypes
+  "Returns the syntax tree of the parsed classpath resource 'jcr2-nodetypes.cnd'"
+  []
+  (parse-cnd-resource "jcr2-nodetypes.cnd"))
