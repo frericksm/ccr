@@ -6,9 +6,8 @@
             [datomic.api :as d  :only [q db]]
             [clojure.java.io :as io]
             [clojure.instant :as instant]
-            [clojure.pprint :as pp]))
-
-
+            [clojure.pprint :as pp]
+            [net.cgrand.enlive-html :as html]))
 
 (defn uuid-tempid-map
   "Liefert eine Map die UUIDs auf Datomic Tempids abbildet.
@@ -42,7 +41,7 @@
 (defn trans-prop-val [uuid2tempid type val cardinality-many]
   (if cardinality-many
     (map (partial trans-single-value uuid2tempid type) val)
-    (trans-single-value uuid2tempid type)))
+    (trans-single-value uuid2tempid type val)))
 
 (defn trans-prop-name [name]
   (-> name
@@ -142,7 +141,7 @@
         (into {} x)))
 
 (defn tx-data [import-file]
-  (let [s (import-file-zipper import-file)
+  (let [s   (import-file-zipper import-file)
         u2t (uuid-tempid-map s)
         u2p (uuid-to-position s)
         import-root-uuid (prop-val s "jcr:uuid") ;; die uuid der root-node aus dem import file
@@ -161,7 +160,7 @@
 (defn import-tx
   "Liefert die Transaction mit der das file importiert wird"
   [parent-node file]
-  (let [{:keys [import-tx-data import-root-db-id] } (tx-data file)
+  (let [{:keys [import-tx-data import-root-db-id]} (tx-data file)
         parent-new-node-link-tx (add-tx (:db/id parent-node) import-root-db-id)]
     (concat parent-new-node-link-tx import-tx-data)))
 
