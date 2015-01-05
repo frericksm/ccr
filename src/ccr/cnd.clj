@@ -14,8 +14,8 @@
   [m]
   (select-keys m (filter #(not (nil? (get m %))) (keys m))))
 
-(defn node-definition-properties-tx
-  ""
+(defn childnode-definition-properties-tx
+  "Returns a datomic transaction for a childnode definition. The parameter 'node' "
   [node]
   (let [node_name      (first (html/select node [:node_name html/text-node])) 
         required_types (html/select node [:required_types :string html/text-node]) 
@@ -25,8 +25,7 @@
         autocreated    (exists? node [:node_attribute :autocreated]) 
         mandatory      (exists? node [:node_attribute :mandatory])
         protected      (exists? node [:node_attribute :protected])
-        opv            (->> (html/select node [:node_attribute :opv
-                                               :string html/text-node])
+        opv            (->> (html/select node [:node_attribute :opv html/text-node])
                             (filter (comp not nil?))
                             (first))
         sns            (exists? node [:node_attribute :sns])]
@@ -68,15 +67,15 @@
        :jcr.property/value-attr :jcr.value/boolean
        :jcr.value/boolean sns}])))
 
-(defn node-definition-tx
+(defn childnode-definition-tx
   ""
   [node]
-  (let [node_definition_properties (node-definition-properties-tx node)]
-    (concat
-     [{:db/id (d/tempid ":db.part/user")
-       :jcr.node/name "jcr:childNodeDefinition"
-       :jcr.node/properties (->> node_definition_properties (map :db/id))}]
-     node_definition_properties)))
+  (let [node_definition_properties (childnode-definition-properties-tx node)
+        childnode_def {:db/id (d/tempid ":db.part/user")
+                       :jcr.node/name "jcr:childNodeDefinition"
+                       :jcr.node/properties (->> node_definition_properties (map :db/id))}]
+    {:db/id (:db/id childnode_def) 
+     :top-level-tx-data (concat [childnode_def] node_definition_properties)}))
 
  
 (def property-type-map
@@ -109,7 +108,7 @@
         mandatory   (exists? node [:property_attribute :mandatory])
         protected   (exists? node [:property_attribute :protected])
         opv         (->> (html/select node [:property_attribute :opv
-                                            :string html/text-node])
+                                            html/text-node])
                          (filter (comp not nil?))
                          (first))
         multiple    (exists? node [:property_attribute :multiple])
@@ -172,12 +171,12 @@
        :jcr.value/boolean query_orderable}])))
 
 (defn property-definition-tx  [node]
-  (let [property_definition_properties (property-definition-properties-tx node)]
-    (concat
-     [{:db/id (d/tempid ":db.part/user")
-       :jcr.node/name "jcr:propertyDefinition"
-       :jcr.node/properties (map :db/id property_definition_properties)}]
-     property_definition_properties)))
+  (let [property_definition_properties (property-definition-properties-tx node)
+        property_def {:db/id (d/tempid ":db.part/user")
+                      :jcr.node/name "jcr:propertyDefinition"
+                      :jcr.node/properties (map :db/id property_definition_properties)}]
+    {:db/id (:db/id property_def) 
+     :top-level-tx-data (concat [property_def] property_definition_properties)}))
 
 (defn nodetype-properties-tx [node]
   (let [nt_name         (first (html/select node #{[:node_type_name
@@ -231,20 +230,20 @@
                                                     html/text-node]}))
         property_defs   (as-> node x
                               (html/select x [:property_def])
-                              (map property-definition-tx x)
-                              (apply concat x))
-        child_node_defs (as-> node x
+                              (map property-definition-tx x))
+        childnode_defs (as-> node x
                               (html/select x [:child_node_def])
-                              (map node-definition-tx x)
-                              (apply concat x))
-        nodetype_properties (nodetype-properties-tx node)]
+                              (map childnode-definition-tx x))
+        nodetype_properties (nodetype-properties-tx node)
+        children_dbids      (->> (concat property_defs childnode_defs) (map :db/id))
+        node_type_def       {:db/id (d/tempid ":db.part/user")
+                             :jcr.node/name nt_name
+                             :jcr.node/children children_dbids 
+                             :jcr.node/properties (map :db/id nodetype_properties)}]
     (concat
-     [{:db/id (d/tempid ":db.part/user")
-       :jcr.node/name nt_name
-       :jcr.node/children (->> (concat property_defs child_node_defs) (map :db/id))
-       :jcr.node/properties (map :db/id nodetype_properties)}]
-     property_defs
-     child_node_defs
+     [node_type_def]
+     (->> property_defs (map :top-level-tx-data) (apply concat))
+     (->> childnode_defs (map :top-level-tx-data) (apply concat))
      nodetype_properties)))
 
 (defn node-to-tx
