@@ -3,12 +3,20 @@
             [datomic.api :as d  :only [q db]]
             [clojure.java.io :as io]
             [clojure.instant :as instant]
-            [net.cgrand.enlive-html :as html]))
+            [net.cgrand.enlive-html :as html]
+            [clojure.data.codec.base64 :as b64]))
 
 (defn trans-prop-name [name]
   (-> name
       (clojure.string/replace ":" "/")
       keyword))
+
+(defn prop-value-in-cardinality
+  "Returns a single value or a list of values"
+  [property]
+  (as-> property x
+        (html/select x [:sv/value html/text-node])
+        (if (= (count x) 1) (first x) x)))
 
 (defn props [node]
   (as-> node x
@@ -17,11 +25,11 @@
                       {:name (:sv/name a)
                        :type (:sv/type a)
                        :position i
-                       :value (first  (html/select p [html/text-node]))})) x)))
+                       :value (prop-value-in-cardinality p)})) x)))
 
 (defn prop-val [node prop-name]
   (as-> node x
-        (html/select x [[:property (html/attr= :sv/name prop-name)] html/text-node])
+        (html/select x [:> :node :> [:property (html/attr= :sv/name prop-name)] html/text-node])
         (first x)))
 
 (defn jcr-value-attr [type many]
@@ -70,9 +78,15 @@
        "Long" (Long/valueOf val)
        "String" val
        "Name" val
+       "Path" val
        "Reference" (get uuid2tempid val)
        "Boolean" (Boolean/valueOf val)
-       ))
+       "Binary" (let [is (java.io.ByteArrayInputStream. (.getBytes val))
+                      os (java.io.ByteArrayOutputStream.)]
+                  (with-open [in is
+                              out os]
+                    (b64/decoding-transfer in out))
+                  (.toByteArray os))))
 
 (defn trans-prop-val [uuid2tempid type val cardinality-many]
   (if cardinality-many
