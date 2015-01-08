@@ -6,6 +6,41 @@
             [net.cgrand.enlive-html :as html]
             [clojure.data.codec.base64 :as b64]))
 
+
+(defn encode64 [ba]
+  (let [is (java.io.ByteArrayInputStream. ba)
+        os (java.io.ByteArrayOutputStream.)]
+    (with-open [in is
+                out os]
+      (b64/encoding-transfer in out))
+    (->> os
+         (.toByteArray)
+         (String. ))))
+
+(defn decode64 [b64-string]
+  (let [is (java.io.ByteArrayInputStream. (.getBytes b64-string))
+        os (java.io.ByteArrayOutputStream.)]
+    (with-open [in is
+                out os]
+      (b64/decoding-transfer in out))
+    (.toByteArray os)))
+
+
+(defn- print-byte-array
+  "Print a java.util.Date as RFC3339 timestamp, always in UTC."
+  [^bytes ba, ^java.io.Writer w]
+  (.write w "#base64 \"")
+  (.write w (encode64 ba))
+  (.write w "\""))
+
+(defmethod print-method (class (byte-array 1)) 
+  [ba, ^java.io.Writer w]
+  (print-byte-array ba w))
+
+(defmethod print-dup (class (byte-array 1))
+  [ba, ^java.io.Writer w]
+  (print-byte-array ba w))
+
 (defn trans-prop-name [name]
   (-> name
       (clojure.string/replace ":" "/")
@@ -65,12 +100,14 @@
   [node]
   (as-> node x
         (html/select x [:node])
-        (map-indexed (fn [ix n]
-                       (vector (prop-val n "jcr:uuid")
-                               (->> (html/select n [:> :node :> :node])
-                                    (map #(prop-val % "jcr:uuid")))))
+        (map (fn [n]
+               (vector (prop-val n "jcr:uuid")
+                       (->> (html/select n [:> :node :> :node])
+                            (map #(prop-val % "jcr:uuid")))))
              x)
         (into {} x)))
+
+
 
 (defn trans-single-value [uuid2tempid type val]
   (case type
@@ -81,12 +118,7 @@
        "Path" val
        "Reference" (get uuid2tempid val)
        "Boolean" (Boolean/valueOf val)
-       "Binary" (let [is (java.io.ByteArrayInputStream. (.getBytes val))
-                      os (java.io.ByteArrayOutputStream.)]
-                  (with-open [in is
-                              out os]
-                    (b64/decoding-transfer in out))
-                  (.toByteArray os))))
+       "Binary" (decode64 val)))
 
 (defn trans-prop-val [uuid2tempid type val cardinality-many]
   (if cardinality-many
@@ -95,7 +127,7 @@
 
 
 (defn node-tx
-  "Erzeugt eine Transaction für die Node zum Tag :node."
+  "Creates the transaction from an element with tag :node"
   [uuid2tempid parent2children uuid2position node]
   (let [ps           (props node)
         ps2tempids   (reduce (fn [a p] (assoc a (:name  p)
@@ -179,3 +211,24 @@
   (let [conn (get-in session [:repository :connection])
         {:keys [db-after]} (deref  (d/transact conn (import-tx parent-node file)))]
     (assoc session :db db-after)))
+
+
+(defn dump-import-tx [rn in-file out-file]
+  (as-> (import-tx rn in-file) x
+        (map pr-str x)
+        (with-open [w (clojure.java.io/writer "c:/1111/FIMS-tx.edn")]
+          (doseq [line x]
+            (.write w line)
+            (.newLine w)))
+        ))
+
+(defn load-tx-file [session filename]
+  (as-> filename x
+        (clojure.java.io/reader x)
+        (java.io.PushbackReader. x)
+        (clojure.edn/read {:readers *data-readers*} x)
+        (let [conn (get-in session [:repository :connection])
+              {:keys [db-after]}
+              (deref (d/transact conn x))]
+          (assoc session :db db-after))
+        ))
