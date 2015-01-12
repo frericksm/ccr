@@ -12,8 +12,8 @@
 
 (defn item-parent [ item]
   (cond
-   (node? item) (->> (get item :jcr.node/_children) )
-   (item? item) (->> (get item :jcr.node/_properties) )))
+   (node? item) (->> (get item :jcr.node/_children) first) 
+   (item? item) (->> (get item :jcr.node/_properties) first )))
 
 (defn item-name [item]
   (cond
@@ -39,13 +39,25 @@
           nil
           (apply str x))))
 
+(defn item-by-path [session path]
+  (let [path_of_names (as-> (clojure.string/split path #"/") x
+                            (filter #(not (empty? %)) x))
+        rn (->> session :workspace :jcr.workspace/rootNode)]
+    (reduce (fn [current_node nodename]
+              (if-let [c (child-node current_node nodename)]
+                c
+                (throw (java.lang.IllegalArgumentException.
+                        (format "No node for path '%s'. Unkown path segment '%s'"
+                                path nodename)))))
+            rn path_of_names)))
+
 (defn query-entities-by-property [db property-name property-value]
   (->> (d/q '[:find ?e 
               :in $ ?pn ?pv
               :where 
-              [?e :jcr.node/properties ?p]
               [?p :jcr.property/name ?pn]
               [?p _ ?pv]
+              [?e :jcr.node/properties ?p]
               ]                   
             db                
             property-name
