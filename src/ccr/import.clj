@@ -6,6 +6,28 @@
             [net.cgrand.enlive-html :as html]
             [clojure.data.codec.base64 :as b64]))
 
+(defn translate-value [v]
+  ;; Returns a vector of two elements:
+  ;; 1. The replacement for V (new :db/id value if V is a map,
+  ;;    a vector with maps replaced by :db/id's if V is a vector, etc.)
+  ;; 2. The sequence of maps which were replaced by their new :db/id's,
+  ;;    each map already contains the :db/id.
+  (letfn [(translate-values [values]
+            (let [mapped (map translate-value values)]
+              [(reduce conj [] (map first mapped))
+               (reduce concat '() (map second mapped))]))]
+    (cond (map? v) (let [id (d/tempid :db.part/user)
+                         translated-vals (translate-values (vals v))
+                         translated-map (zipmap (keys v)
+                                                (first translated-vals))]
+                     [id (cons (assoc translated-map :db/id id)
+                               (second translated-vals))])
+          (vector? v) (translate-values v)
+          :else [v nil])))
+ 
+(defn to-transaction [data-map]
+  (vec (second (translate-value data-map))))
+
 
 (defn encode64 [ba]
   (let [is (java.io.ByteArrayInputStream. ba)
@@ -27,7 +49,7 @@
 
 
 (defn- print-byte-array
-  "Print a java.util.Date as RFC3339 timestamp, always in UTC."
+  "Print a byte array."
   [^bytes ba, ^java.io.Writer w]
   (.write w "#base64 \"")
   (.write w (encode64 ba))
@@ -46,6 +68,22 @@
       (clojure.string/replace ":" "/")
       keyword))
 
+(defn trans-single-value [type val]
+  (case type
+       "Date" (instant/read-instant-timestamp val) 
+       "Long" (Long/valueOf val)
+       "String" val
+       "Name" val
+       "Path" val
+       "Reference" val
+       "Boolean" (Boolean/valueOf val)
+       "Binary" (decode64 val)))
+
+(defn trans-prop-val [type val cardinality-many]
+  (if cardinality-many
+    (map (partial trans-single-value type) val)
+    (trans-single-value type val)))
+
 (defn prop-value-in-cardinality
   "Returns a single value or a list of values"
   [property]
@@ -53,123 +91,52 @@
         (html/select x [:sv/value html/text-node])
         (if (= (count x) 1) (first x) x)))
 
-(defn props [node]
-  (as-> node x
-        (html/select x [:> :node :> :property])
-        (map-indexed (fn [i p] (let [a (:attrs p)]
-                      {:name (:sv/name a)
-                       :type (:sv/type a)
-                       :position i
-                       :value (prop-value-in-cardinality p)})) x)))
-
-(defn prop-val [node prop-name]
-  (as-> node x
-        (html/select x [:> :node :> [:property (html/attr= :sv/name prop-name)] html/text-node])
-        (first x)))
-
 (defn jcr-value-attr [type many]
   (let [card (if many "s" "")
         t (str (clojure.string/lower-case type) card)]
     (->> (format "jcr.value/%s"  t )
          keyword)))
 
-(defn uuid-tempid-map
-  "Liefert eine Map die UUIDs auf Datomic Tempids abbildet.
-   Dazu werden alle Properties mit dem Namen \"jcr:uuid\" ermittlet. "
-  [node]
+(defn props [node]
   (as-> node x
-        (html/select x [[:property (html/attr= :sv/name "jcr:uuid")] html/text-node])
-        (map (fn [uuid] (vector uuid (d/tempid ":db.part/user"))) x)
-        (into {} x)))
+        (html/select x [:> :node :> :property])
+        (map (fn [p] (let [a (:attrs p)
+                          type (:sv/type a)
+                          name (:sv/name a)
+                          value (prop-value-in-cardinality p)
+                          card-many (coll? value) 
+                          val-attr (jcr-value-attr type card-many)
+                          val (trans-prop-val type value card-many)]
+                      {:jcr.property/name (:sv/name a)
+                       :jcr.property/value-attr val-attr
+                       val-attr val})) x)))
 
-(defn uuid-to-position
-  "Liefert eine Map, die die UUID einer Node auf die Position dieser Node als Child des Parent hat"
-  [node]
+(defn prop-val [node prop-name]
   (as-> node x
-        (html/select x [:node])
-        (map (fn [n]
-               (map-indexed (fn [ix c] (vector c ix))
-                            (->> (html/select n [:> :node :> :node])
-                                 (map #(prop-val % "jcr:uuid")))))
-             x)
-        (apply concat x)
-        (into {} x)))
+        (html/select x [:> :node :> [:property (html/attr= :sv/name prop-name)] html/text-node])
+        (first x)))
 
-(defn parent-child-relations
-  "Liefert eine Map, die die UUID einer Node auf die UUIDs der Child-Nodes abbildet"
-  [node]
-  (as-> node x
-        (html/select x [:node])
-        (map (fn [n]
-               (vector (prop-val n "jcr:uuid")
-                       (->> (html/select n [:> :node :> :node])
-                            (map #(prop-val % "jcr:uuid")))))
-             x)
-        (into {} x)))
-
-
-
-(defn trans-single-value [uuid2tempid type val]
-  (case type
-       "Date" (instant/read-instant-timestamp val) 
-       "Long" (Long/valueOf val)
-       "String" val
-       "Name" val
-       "Path" val
-       "Reference" (get uuid2tempid val)
-       "Boolean" (Boolean/valueOf val)
-       "Binary" (decode64 val)))
-
-(defn trans-prop-val [uuid2tempid type val cardinality-many]
-  (if cardinality-many
-    (map (partial trans-single-value uuid2tempid type) val)
-    (trans-single-value uuid2tempid type val)))
-
-
-(defn node-tx
+(defn node-as-entity
   "Creates the transaction from an element with tag :node"
-  [uuid2tempid parent2children uuid2position node]
-  (let [ps           (props node)
-        ps2tempids   (reduce (fn [a p] (assoc a (:name  p)
-                                             (d/tempid ":db.part/user")))
-                             {} ps)        
-        ps-tx        (->> ps 
-                          (map (fn [p]
-                                 (let [type (:type p)
-                                       name (:name p)
-                                       value (:value p)
-                                       cardinality-many (coll? value) 
-                                       val-attr (jcr-value-attr type cardinality-many)]
-                                   {:db/id (get ps2tempids name)
-                                    :jcr.property/name name
-                                    :jcr.property/value-attr val-attr
-                                    val-attr
-                                    (trans-prop-val uuid2tempid type value cardinality-many)
-                                    }))))
-        uuid         (->> ps
-                          (filter #(= "jcr:uuid" (:name %)))
-                          (map :value)
-                          first)
-        nid          (get uuid2tempid uuid)
-        children-ids (->> (get parent2children uuid) (map uuid2tempid))
-        properties-ids (vals ps2tempids)
-        position       (get uuid2position uuid)
-        node-tx [{:db/id nid
-                  :jcr.node/name (->> node :attrs :sv/name)
-                  :jcr.node/properties properties-ids
-                  :jcr.node/children children-ids
-                  }]]
-    (as-> node-tx x
-          (if position (cons {:db/id nid
-                              :jcr.node/position position}
-                             x) x)
-          (concat x ps-tx))))
+  [position node]
+  (let [node-tx {:jcr.node/name (->> node :attrs :sv/name)
+                 :jcr.node/properties (vec (props node))
+                 :jcr.node/children (->> (html/select node [:> :node :> :node])
+                                         (map-indexed (fn [i n] (node-as-entity
+                                                                i n)))
+                                         vec)}] 
+    (if (nil? position)
+      node-tx
+      (assoc node-tx :jcr.node/position position))))
 
-(defn to-tx [uuid2tempid parent2children uuid2position node]
+(defn to-nested-entitites
+  " "
+  [node]
   (as-> node x
-        (html/select x [:node])
-        (map (partial node-tx uuid2tempid parent2children uuid2position) x)
+        (html/select x [:> :node])
+        (map (partial node-as-entity nil) x)
         (reduce (fn [a c] (concat a c) ) x)
+        ;(first x)
         ))
 
 (defn parse-import-file
@@ -180,16 +147,10 @@
         (io/input-stream x)
         (xml/parse x)))
 
-(defn tx-data [import-file]
-  (let [node (parse-import-file import-file)
-        u2t  (uuid-tempid-map node)
-        u2p  (uuid-to-position node)
-        import-root-uuid (prop-val node "jcr:uuid") ;; die uuid der root-node aus dem import file
-        p2c (parent-child-relations node)
-        import-tx-data (to-tx u2t p2c u2p node)]
-    {:import-tx-data import-tx-data
-     :import-root-db-id (get u2t import-root-uuid) 
-     }))
+(defn nested-entities [import-file]
+  (as-> import-file x
+        (parse-import-file x)
+        (to-nested-entitites x)))
 
 (defn add-tx [node-id child-id]
   [{:db/id             node-id
@@ -197,12 +158,62 @@
    [:append-position-in-scope node-id :jcr.node/children child-id :jcr.node/position]
    ])
 
+
+(defn adjust-refs [tx out-of-reach-node-dbid]
+  (let [refed_uuids   (as-> tx x
+                            (filter (fn [e] (not
+                                            (nil?
+                                             (get e :jcr.value/reference)))) x)
+                            (map (fn [e] (get e :jcr.value/reference)) x)
+                            (set x))
+
+        uuid2propdbid (as-> tx x
+                            (filter (fn [e]
+                                      (and (= (get e :jcr.property/name)
+                                              "jcr:uuid")
+                                           (contains? refed_uuids
+                                                      (get e :jcr.value/string))))
+                                    x)
+                            (map (fn [e] [(get e :jcr.value/string)
+                                         (get e :db/id)]) x)
+                            (into {} x))
+        propdbids     (set (vals uuid2propdbid))
+
+        propdbid2nodedbid
+        
+        (as-> tx x
+              (filter (fn [e] (not (nil? (get e :jcr.node/properties)))) x)
+              (map (fn [e] [(:db/id e) (clojure.set/intersection
+                                       propdbids
+                                       (set (get e :jcr.node/properties)))]) x)
+              (filter (fn [[dbid isect]] (not (empty? isect))) x)
+              (map (fn [[dbid isect]] [(first isect) dbid]) x)
+              (into {} x))]
+    (as-> tx x
+          (map (fn [e]
+                 (cond (and (map? e)
+                            (= :jcr.value/reference
+                               (:jcr.property/value-attr e)))
+                       (update-in e [:jcr.value/reference]
+                                  (fn [old_value]
+                                    (as-> old_value x
+                                         (get uuid2propdbid x)
+                                         (get propdbid2nodedbid x
+                                              out-of-reach-node-dbid)))) 
+                       :else e)) x))))
+
 (defn import-tx
   "Liefert die Transaction mit der das file importiert wird"
   [parent-node file]
-  (let [{:keys [import-tx-data import-root-db-id]} (tx-data file)
-        parent-new-node-link-tx (add-tx (:db/id parent-node) import-root-db-id)]
-    (concat parent-new-node-link-tx import-tx-data)))
+  (let [tx-data (translate-value (nested-entities file))
+        import-root-db-id (first tx-data)
+        out-of-reach-node-dbid import-root-db-id
+        tx-data-with-refs-adjusted (as-> (second tx-data) x
+                                         (adjust-refs x out-of-reach-node-dbid)
+                                         )
+        parent-new-node-link-tx (add-tx (:db/id parent-node) import-root-db-id  )
+        ]
+    (concat parent-new-node-link-tx tx-data-with-refs-adjusted)))
 
 (defn import-xml
   "Importiert den Inhalt der XML-Datei (System-View) als Child der parent-node.
@@ -213,17 +224,24 @@
     (assoc session :db db-after)))
 
 
-(defn dump-import-tx [rn in-file out-file]
-  (as-> (import-tx rn in-file) x
+(defn dump-import-tx
+  "Converts the systemview  xml data from file 'systemview-xml-file' to a datomic transaction and
+   dumps this transaction data to file 'tx-file'"
+  [rn systemview-xml-file tx-file]
+  (as-> (import-tx rn systemview-xml-file) x
         (map pr-str x)
-        (with-open [w (clojure.java.io/writer "c:/1111/FIMS-tx.edn")]
+        (with-open [w (clojure.java.io/writer tx-file)]
+          (.write w "[" )
           (doseq [line x]
             (.write w line)
-            (.newLine w)))
+            (.newLine w))
+          (.write w "]" ))
         ))
 
-(defn load-tx-file [session filename]
-  (as-> filename x
+(defn load-tx-file
+  "Transacts the transaction data cotained in the tx-file"
+  [session tx-file]
+  (as-> tx-file x
         (clojure.java.io/reader x)
         (java.io.PushbackReader. x)
         (clojure.edn/read {:readers *data-readers*} x)

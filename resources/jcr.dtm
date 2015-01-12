@@ -48,7 +48,7 @@
   :db/ident :jcr.node/position
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
-  :db/doc "The positiion of a node in the sequence of the child nodes of the parent node"
+  :db/doc "The position of a node in the sequence of the child nodes of the parent node"
   :db.install/_attribute :db.part/db}
 
  ;; property
@@ -88,6 +88,20 @@
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/many
   :db/doc "Values of type NAME"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/path
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Value of type PATH"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/paths
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/many
+  :db/doc "Values of type PATH"
   :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
