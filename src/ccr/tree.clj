@@ -79,9 +79,16 @@
                                (get % :jcr.node/name))))))
 
 (defn child-node [node relPath]
-  (->> (get node :jcr.node/children)
-       (filter #(= relPath (get % :jcr.node/name)))
-       (first)))
+  (let [position (->> (re-find #".*\[(\d+)\]" relPath) second)
+        index    (if (nil? position) 0 (dec (Integer/parseInt position)))
+        basePathSegment (if (nil? position)
+                          relPath
+                          (.substring relPath 0 (.indexOf relPath "[")))
+        ]
+    (as-> (get node :jcr.node/children) x
+          (filter #(= basePathSegment (get % :jcr.node/name)) x)
+          (sort-by :jcr.node/position x)
+          (nth x index))))
 
 (defn properties [node]
   (get node :jcr.node/properties))

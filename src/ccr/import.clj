@@ -140,7 +140,7 @@
         ))
 
 (defn parse-import-file
-  "Parst eine XML-Datei, die eine Systemview einer Node aus einem JCR-Repository enthält"
+  "Reads and parses a xml file containing the system view exported from a jcr repository"
   [import-file]
   (as-> import-file x
         (io/file x)
@@ -207,12 +207,9 @@
   [parent-node file]
   (let [tx-data (translate-value (nested-entities file))
         import-root-db-id (first tx-data)
-        out-of-reach-node-dbid import-root-db-id
         tx-data-with-refs-adjusted (as-> (second tx-data) x
-                                         (adjust-refs x out-of-reach-node-dbid)
-                                         )
-        parent-new-node-link-tx (add-tx (:db/id parent-node) import-root-db-id  )
-        ]
+                                         (adjust-refs x nil))
+        parent-new-node-link-tx (add-tx (:db/id parent-node) import-root-db-id)]
     (concat parent-new-node-link-tx tx-data-with-refs-adjusted)))
 
 (defn import-xml
