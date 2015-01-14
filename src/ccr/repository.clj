@@ -26,7 +26,7 @@
   (let [created (d/create-database uri)
         conn (d/connect uri)]
     (if created (do  (create-schema conn)
-                     (nt/load-builtin-node-types conn)
+                     ;(nt/load-builtin-node-types conn)
                      (create-workspace conn "default")))
     {:uri uri
      :connection conn}))
