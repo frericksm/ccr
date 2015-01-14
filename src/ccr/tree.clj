@@ -39,17 +39,7 @@
           nil
           (apply str x))))
 
-(defn item-by-path [session path]
-  (let [path_of_names (as-> (clojure.string/split path #"/") x
-                            (filter #(not (empty? %)) x))
-        rn (->> session :workspace :jcr.workspace/rootNode)]
-    (reduce (fn [current_node nodename]
-              (if-let [c (child-node current_node nodename)]
-                c
-                (throw (java.lang.IllegalArgumentException.
-                        (format "No node for path '%s'. Unkown path segment '%s'"
-                                path nodename)))))
-            rn path_of_names)))
+
 
 (defn query-entities-by-property [db property-name property-value]
   (->> (d/q '[:find ?e 
@@ -89,6 +79,20 @@
           (filter #(= basePathSegment (get % :jcr.node/name)) x)
           (sort-by :jcr.node/position x)
           (nth x index))))
+
+
+(defn item-by-path [session path]
+  (let [path_of_names (as-> (clojure.string/split path #"/") x
+                            (filter #(not (empty? %)) x))
+        rn (->> session :workspace :jcr.workspace/rootNode)]
+    (reduce (fn [current_node nodename]
+              (if-let [c (child-node current_node nodename)]
+                c
+                (throw (java.lang.IllegalArgumentException.
+                        (format "No node for path '%s'. Unkown path segment '%s'"
+                                path nodename)))))
+            rn path_of_names)))
+
 
 (defn properties [node]
   (get node :jcr.node/properties))
