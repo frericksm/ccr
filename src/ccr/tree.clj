@@ -15,9 +15,15 @@
    (node? item) (->> (get item :jcr.node/_children) first) 
    (item? item) (->> (get item :jcr.node/_properties) first )))
 
+(defn node-name [node]
+  (let [n (get node :jcr.node/name)]
+    (if (= n "jcr:root")
+      ""
+      n)))
+
 (defn item-name [item]
   (cond
-   (node? item) (get item :jcr.node/name)
+   (node? item) (node-name item)
    (item? item) (get item :jcr.property/name)))
 
 (defn item-path-internal [item]
