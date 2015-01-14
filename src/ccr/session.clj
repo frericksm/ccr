@@ -28,7 +28,7 @@
 
 (defn root
   ([session]
-     (let [db (get-in session [:db])
+     (let [db   (get session :db)
            name (get-in session [:workspace :jcr.workspace/name ])]
        (->> (d/q '[:find ?r 
                    :in $ ?name
