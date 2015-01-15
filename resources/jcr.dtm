@@ -61,20 +61,27 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.property/type
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/doc "The type of a property"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
   :db/ident :jcr.property/value-attr
   :db/valueType :db.type/keyword 
   :db/cardinality :db.cardinality/one
   :db/doc "The name of the datomic attribute which contains the value of this property entitity"
   :db.install/_attribute :db.part/db}
 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.property/values
+  :db/valueType :db.type/ref 
+  :db/cardinality :db.cardinality/many
+  :db/doc "The references to the value entities"
+  :db.install/_attribute :db.part/db}
+
  ;; value
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :jcr.value/position
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "The position of a value in the sequence of values"
+  :db.install/_attribute :db.part/db}
  
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/name

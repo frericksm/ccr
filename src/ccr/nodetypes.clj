@@ -20,10 +20,12 @@
                :where  
                [?p1 :jcr.property/name "jcr:primaryType"]
                [?p1 :jcr.property/value-attr ?va1]
-               [?p1 ?va1 "nt:nodeType"]
+               [?p1 :jcr.property/values ?values1]
+               [?values1 ?va1 "nt:nodeType"]
                [?p2 :jcr.property/name "jcr:nodeTypeName"]
                [?p2 :jcr.property/value-attr ?va2]
-               [?p2 ?va2 ?v]
+               [?p2 :jcr.property/values ?values2]
+               [?values2 ?va2 ?v]
                [?e :jcr.node/properties ?p1]
                [?e :jcr.node/properties ?p2]]
              db nodetype-name) x

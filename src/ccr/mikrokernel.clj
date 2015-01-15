@@ -1,4 +1,4 @@
-b(ns ccr.mikrokernel
+(ns ccr.mikrokernel
   (:require [datomic.api :as d  :only [q db]])
   ;;(:require clojure.pprint)
   )

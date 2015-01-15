@@ -2,7 +2,8 @@
   (:require [instaparse.core :as insta]
             [clojure.java.io :as io]
             [net.cgrand.enlive-html :as html]
-            [datomic.api :as d  :only [q db]]))
+            [datomic.api :as d  :only [q db]]
+            [ccr.transaction-utils :as tu]))
 
 (defn exists?
   "Returns true, if the selector applied to the node returns an empty list"
@@ -10,9 +11,14 @@
   (not (empty? (html/select node  selector))))
 
 (defn remove-nil-vals
-  "Returns a map which is m but with all entries removed where the value for a key is nil"
+  "Returns a property entity map where the seq to key :jcr.property/values is cleaned from values and given a value to the key :jcr.value/position"
   [m]
-  (select-keys m (filter #(not (nil? (get m %))) (keys m))))
+  (update-in m [:jcr.property/values]
+             (fn [val-seq]
+               (as-> val-seq x
+                     (filter #(not (nil? (get % ((first (keys %)))))) x)
+                     (map-indexed (fn [i v]
+                                    (assoc v :jcr.value/position i)) x)))))
 
 (defn childnode-definition-properties-tx
   "Returns a datomic transaction for a childnode definition. The parameter 'node' "
@@ -30,52 +36,42 @@
                             (first))
         sns            (exists? node [:node_attribute :sns])]
     (map remove-nil-vals
-     [{:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:primaryType"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.value/name "nt:childNodeDefinition"}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:name"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.value/name  node_name}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:autoCreated"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean autocreated}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:mandatory"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean mandatory}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:onParentVersion"
-       :jcr.property/value-attr :jcr.value/string
-       :jcr.value/string opv}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:protected"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean protected}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:requiredPrimaryTypes"
-       :jcr.property/value-attr :jcr.value/names
-       :jcr.value/names (set required_types)}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:defaultPrimaryType"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.value/name default_type}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:sameNameSiblings"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean sns}])))
+         [{:jcr.property/name "jcr:primaryType"
+           :jcr.property/value-attr :jcr.value/name
+           :jcr.property/values [{:jcr.value/name "nt:childNodeDefinition"}]}
+          {:jcr.property/name "jcr:name"
+           :jcr.property/value-attr :jcr.value/name
+           :jcr.property/values [{:jcr.value/name node_name}]}
+          {:jcr.property/name "jcr:autoCreated"
+           :jcr.property/value-attr :jcr.value/boolean
+           :jcr.property/values [{:jcr.value/boolean autocreated}]}
+          {:jcr.property/name "jcr:mandatory"
+           :jcr.property/value-attr :jcr.value/boolean
+           :jcr.property/values [{:jcr.value/boolean mandatory}]}
+          {:jcr.property/name "jcr:onParentVersion"
+           :jcr.property/value-attr :jcr.value/string
+           :jcr.property/values [{:jcr.value/string opv}]}
+          {:jcr.property/name "jcr:protected"
+           :jcr.property/value-attr :jcr.value/boolean
+           :jcr.property/values [{:jcr.value/boolean protected}]}
+          {:jcr.property/name "jcr:requiredPrimaryTypes"
+           :jcr.property/value-attr :jcr.value/name
+           :jcr.property/values (->> required_types
+                                     (map (fn [v])
+                                          {:jcr.value/name v}))
+           :jcr.value/names (set required_types)}
+          {:jcr.property/name "jcr:defaultPrimaryType"
+           :jcr.property/value-attr :jcr.value/name
+           :jcr.property/values [{:jcr.value/name default_type}]}
+          {:jcr.property/name "jcr:sameNameSiblings"
+           :jcr.property/value-attr :jcr.value/boolean
+           :jcr.property/values [{:jcr.value/boolean sns}]}])))
 
 (defn childnode-definition-tx
   ""
   [node]
-  (let [node_definition_properties (childnode-definition-properties-tx node)
-        childnode_def {:db/id (d/tempid ":db.part/user")
-                       :jcr.node/name "jcr:childNodeDefinition"
-                       :jcr.node/properties (->> node_definition_properties (map :db/id))}]
-    {:db/id (:db/id childnode_def) 
-     :top-level-tx-data (concat [childnode_def] node_definition_properties)}))
+  {:jcr.node/name "jcr:childNodeDefinition"
+   :jcr.node/properties (childnode-definition-properties-tx node)})
 
  
 (def property-type-map
@@ -117,66 +113,55 @@
         full_text   (not (exists? node [:property_attribute :no_full_text]))
         query_orderable (not (exists? node [:property_attribute :no_query_order]))]
     (map remove-nil-vals
-     [{:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:primaryType"
+     [{:jcr.property/name "jcr:primaryType"
        :jcr.property/value-attr :jcr.value/name
-       :jcr.value/name "nt:propertyDefinition"}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:name"
+       :jcr.property/values [{:jcr.value/name "nt:propertyDefinition"}]}
+      {:jcr.property/name "jcr:name"
        :jcr.property/value-attr :jcr.value/name
-       :jcr.value/name  property_name}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:autoCreated"
+       :jcr.property/values [{:jcr.value/name  property_name}]}
+      {:jcr.property/name "jcr:autoCreated"
        :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean autocreated}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:mandatory"
+       :jcr.property/values [{:jcr.value/boolean autocreated}]}
+      {:jcr.property/name "jcr:mandatory"
        :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean mandatory}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:onParentVersion"
+       :jcr.property/values [{:jcr.value/boolean mandatory}]}
+      {:jcr.property/name "jcr:onParentVersion"
        :jcr.property/value-attr :jcr.value/string
-       :jcr.value/string opv}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:protected"
+       :jcr.property/values [{:jcr.value/string opv}]}
+      {:jcr.property/name "jcr:protected"
        :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean protected}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:requiredType"
+       :jcr.property/values [{:jcr.value/boolean protected}]}
+      {:jcr.property/name "jcr:requiredType"
        :jcr.property/value-attr :jcr.value/string
-       :jcr.value/string prop_type}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:valueConstraints"
-       :jcr.property/value-attr :jcr.value/strings
-       :jcr.value/strings (set value_constraints)}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:defaultValues"
-       :jcr.property/value-attr :jcr.value/strings
-       :jcr.value/strings (set default_values)}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:multiple"
+       :jcr.property/values [{:jcr.value/string prop_type}]}
+      {:jcr.property/name "jcr:valueConstraints"
+       :jcr.property/value-attr :jcr.value/string
+       :jcr.property/values (->> value_constraints
+                                 (map (fn [v])
+                                      {:jcr.value/string v}))}
+      {:jcr.property/name "jcr:defaultValues"
+       :jcr.property/value-attr :jcr.value/string
+       :jcr.property/values (->> default_values
+                                 (map (fn [v])
+                                      {:jcr.value/string v}))}
+      {:jcr.property/name "jcr:multiple"
        :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean multiple}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:availableQueryOperators"
-       :jcr.property/value-attr :jcr.value/names
-       :jcr.value/names (set query_ops)}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:isFullTextSearchable"
+       :jcr.property/values [{:jcr.value/boolean multiple}]}
+      {:jcr.property/name "jcr:availableQueryOperators"
+       :jcr.property/value-attr :jcr.value/name
+       :jcr.property/values (->> query_ops
+                                 (map (fn [v])
+                                      {:jcr.value/name v}))}
+      {:jcr.property/name "jcr:isFullTextSearchable"
        :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean full_text}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:isQueryOrderable"
+       :jcr.property/values [{:jcr.value/boolean full_text}]}
+      {:jcr.property/name "jcr:isQueryOrderable"
        :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean query_orderable}])))
+       :jcr.property/values [{:jcr.value/boolean query_orderable}]}])))
 
 (defn property-definition-tx  [node]
-  (let [property_definition_properties (property-definition-properties-tx node)
-        property_def {:db/id (d/tempid ":db.part/user")
-                      :jcr.node/name "jcr:propertyDefinition"
-                      :jcr.node/properties (map :db/id property_definition_properties)}]
-    {:db/id (:db/id property_def) 
-     :top-level-tx-data (concat [property_def] property_definition_properties)}))
+  {:jcr.node/name "jcr:propertyDefinition"
+   :jcr.node/properties (property-definition-properties-tx node)})
 
 (defn nodetype-properties-tx [node]
   (let [nt_name         (first (html/select node #{[:node_type_name
@@ -190,61 +175,50 @@
                              (filter #(not (nil? %)))
                              (first))
         orderable       (exists? node [:node_type_attribute :orderable])
-        supertypes      (html/select node  #{[:supertypes :string html/text-node]})]
+        supertypes      (html/select node [:supertypes
+                                           :string
+                                           html/text-node])]
     (map remove-nil-vals
-     [{:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:primaryType"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.value/name "nt:nodeType"}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:nodeTypeName"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.value/name nt_name}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:supertypes"
-       :jcr.property/value-attr :jcr.value/names
-       :jcr.value/names (set supertypes)}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:isAbstract"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean abstract}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:isQueryable"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean queryable}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:isMixin"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean mixin}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:hasOrderableChildNodes"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.value/boolean orderable}
-      {:db/id (d/tempid ":db.part/user")
-       :jcr.property/name "jcr:primaryItemName"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.value/name primaryitem}])))
+         [{:jcr.property/name "jcr:primaryType"
+           :jcr.property/value-attr :jcr.value/name
+           :jcr.property/values [{:jcr.value/name "nt:nodeType"}]}
+          {:jcr.property/name "jcr:nodeTypeName"
+           :jcr.property/value-attr :jcr.value/name
+           :jcr.property/values [{:jcr.value/name nt_name}]}
+          {:jcr.property/name "jcr:supertypes"
+           :jcr.property/value-attr :jcr.value/names
+           :jcr.value/names (set supertypes)}
+          {:jcr.property/name "jcr:isAbstract"
+           :jcr.property/value-attr :jcr.value/boolean
+           :jcr.property/values [{:jcr.value/boolean abstract}]}
+          {:jcr.property/name "jcr:isQueryable"
+           :jcr.property/value-attr :jcr.value/boolean
+           :jcr.property/values [{:jcr.value/boolean queryable}]}
+          {:jcr.property/name "jcr:isMixin"
+           :jcr.property/value-attr :jcr.value/boolean
+           :jcr.property/values [{:jcr.value/boolean mixin}]}
+          {:jcr.property/name "jcr:hasOrderableChildNodes"
+           :jcr.property/value-attr :jcr.value/boolean
+           :jcr.property/values [{:jcr.value/boolean orderable}]}
+          {:jcr.property/name "jcr:primaryItemName"
+           :jcr.property/value-attr :jcr.value/name
+           :jcr.property/values [{:jcr.value/name primaryitem}]}])))
 
 (defn nodetype-tx [node]
   (let [nt_name         (first (html/select node #{[:node_type_name
                                                     html/text-node]}))
         property_defs   (as-> node x
                               (html/select x [:property_def])
-                              (map property-definition-tx x))
+                              (map property-definition-tx x)
+                              (apply concat x))
         childnode_defs (as-> node x
                               (html/select x [:child_node_def])
                               (map childnode-definition-tx x))
-        nodetype_properties (nodetype-properties-tx node)
-        children_dbids      (->> (concat property_defs childnode_defs) (map :db/id))
-        node_type_def       {:db/id (d/tempid ":db.part/user")
-                             :jcr.node/name nt_name
-                             :jcr.node/children children_dbids 
-                             :jcr.node/properties (map :db/id nodetype_properties)}]
-    (concat
-     [node_type_def]
-     (->> property_defs (map :top-level-tx-data) (apply concat))
-     (->> childnode_defs (map :top-level-tx-data) (apply concat))
-     nodetype_properties)))
+        nodetype_properties (nodetype-properties-tx node)]
+    {:jcr.node/name nt_name
+     :jcr.node/children (concat property_defs
+                                childnode_defs) 
+     :jcr.node/properties nodetype_properties}))
 
 (defn node-to-tx
   "Returns a datomic transaction of the syntax tree 'node' generated by the function 'parse-cnd-resource'. This transaction loads all nodetypes defined in 'node' as jcr content. That is entities consisting of the node attributes defined in 'jcr.dtm'"
@@ -252,7 +226,8 @@
   (as-> node x
         (html/select x [:node_type_def])
         (map nodetype-tx x)
-        (apply concat x)))
+        (apply concat x)
+        (tu/translate-value x)))
 
 (def cnd-parser
   "A function with one parameter of type String. Assumes that the string is in cnd format. Parses the string and returns the syntax tree in :enlive format"

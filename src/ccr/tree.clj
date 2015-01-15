@@ -117,5 +117,16 @@
 
 (defn property-name [property]
   (:jcr.property/name property)
-)
+  )
 
+(defn node-summary [node]
+  (as-> node x
+        (vector (->> x
+                     (child-nodes)
+                     (map item-name)
+                     (sort-by :jcr.node/position ))
+                (->> x
+                     (properties)
+                     (map #(vector (get % :jcr.property/name)
+                                   (get % (get % :jcr.property/value-attr)))
+                          )))))
