@@ -57,9 +57,8 @@
           {:jcr.property/name "jcr:requiredPrimaryTypes"
            :jcr.property/value-attr :jcr.value/name
            :jcr.property/values (->> required_types
-                                     (map (fn [v])
-                                          {:jcr.value/name v}))
-           :jcr.value/names (set required_types)}
+                                     (map (fn [v]
+                                            {:jcr.value/name v})))}
           {:jcr.property/name "jcr:defaultPrimaryType"
            :jcr.property/value-attr :jcr.value/name
            :jcr.property/values [{:jcr.value/name default_type}]}
@@ -137,21 +136,21 @@
       {:jcr.property/name "jcr:valueConstraints"
        :jcr.property/value-attr :jcr.value/string
        :jcr.property/values (->> value_constraints
-                                 (map (fn [v])
-                                      {:jcr.value/string v}))}
+                                 (map (fn [v]
+                                        {:jcr.value/string v})))}
       {:jcr.property/name "jcr:defaultValues"
        :jcr.property/value-attr :jcr.value/string
        :jcr.property/values (->> default_values
-                                 (map (fn [v])
-                                      {:jcr.value/string v}))}
+                                 (map (fn [v]
+                                        {:jcr.value/string v})))}
       {:jcr.property/name "jcr:multiple"
        :jcr.property/value-attr :jcr.value/boolean
        :jcr.property/values [{:jcr.value/boolean multiple}]}
       {:jcr.property/name "jcr:availableQueryOperators"
        :jcr.property/value-attr :jcr.value/name
        :jcr.property/values (->> query_ops
-                                 (map (fn [v])
-                                      {:jcr.value/name v}))}
+                                 (map (fn [v]
+                                        {:jcr.value/name v})))}
       {:jcr.property/name "jcr:isFullTextSearchable"
        :jcr.property/value-attr :jcr.value/boolean
        :jcr.property/values [{:jcr.value/boolean full_text}]}
@@ -186,8 +185,10 @@
            :jcr.property/value-attr :jcr.value/name
            :jcr.property/values [{:jcr.value/name nt_name}]}
           {:jcr.property/name "jcr:supertypes"
-           :jcr.property/value-attr :jcr.value/names
-           :jcr.value/names (set supertypes)}
+           :jcr.property/value-attr :jcr.value/name
+           :jcr.property/values (->> supertypes
+                                     (map (fn [v]
+                                            {:jcr.value/name v})))}
           {:jcr.property/name "jcr:isAbstract"
            :jcr.property/value-attr :jcr.value/boolean
            :jcr.property/values [{:jcr.value/boolean abstract}]}

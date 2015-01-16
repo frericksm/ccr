@@ -127,6 +127,8 @@
                      (sort-by :jcr.node/position ))
                 (->> x
                      (properties)
-                     (map #(vector (get % :jcr.property/name)
-                                   (get % (get % :jcr.property/value-attr)))
-                          )))))
+                     (map (fn [p] (vector
+                                  (get p :jcr.property/name)
+                                  (->> (get p :jcr.property/values)
+                                       (sort-by :jcr.value/position)
+                                       (map #(get % (:jcr.property/value-attr p)))))))))))

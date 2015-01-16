@@ -15,7 +15,7 @@
        "Path" val
        "Reference" val
        "Boolean" (Boolean/valueOf val)
-       "Binary" (decode64 val)))
+       "Binary" (tu/decode64 val)))
 
 (defn jcr-value-attr [type]
   (->> type
@@ -26,19 +26,21 @@
 (defn props [node]
   (as-> node x
         (html/select x [:> :node :> :property])
-        (map (fn [p] (let [a         (:attrs p)
-                          type      (:sv/type a)
-                          name      (:sv/name a)
-                          val-attr  (jcr-value-attr type)]
-                      {:jcr.property/name name
-                       :jcr.property/value-attr val-attr
-                       :jcr.property/values
-                       (->> p x
-                            (html/select x [:sv/value html/text-node])
-                            (map-indexed
-                             (fn [i v] {:jcr.value/position i
-                                       val-attr (trans-single-value v)}))
-                            vec)})) x)))
+        (map (fn [p]
+               (let [a         (:attrs p)
+                     type      (:sv/type a)
+                     name      (:sv/name a)
+                     val-attr  (jcr-value-attr type)]
+                 {:jcr.property/name name
+                  :jcr.property/value-attr val-attr
+                  :jcr.property/values
+                  (as-> p y
+                        (html/select y [:sv/value html/text-node])
+                        (map-indexed
+                         (fn [i v] {:jcr.value/position i
+                                   val-attr (trans-single-value type v)}) y)
+                        (vec y))}))
+             x)))
 
 (defn node-as-entity
   "Creates the transaction from an element with tag :node"
@@ -80,50 +82,65 @@
         (to-nested-entitites x)))
 
 
+(defn referenced-uuids [tx]
+  (as-> tx x
+        (map (fn [e] (get e :jcr.value/reference)) x)
+        (filter (comp not nil?) x)
+        (set x)))
 
+(defn uuid-2-value-dbid [tx refed_uuids]
+  (as-> tx x
+        (filter (fn [e]
+                  (contains? refed_uuids
+                             (get e :jcr.value/string))) x)
+        (map (fn [e] [(get e :jcr.value/string)
+                     (get e :db/id)]) x)
+        (into {} x)))
 
-(defn adjust-refs [tx out-of-reach-node-dbid]
-  (let [refed_uuids   (as-> tx x
-                            (filter (fn [e] (not
-                                            (nil?
-                                             (get e :jcr.value/reference)))) x)
-                            (map (fn [e] (get e :jcr.value/reference)) x)
-                            (set x))
+(defn value-dbid-2-prop-dbid [tx value_dbids]
+  (as-> tx x
+        (filter (fn [e] (not (nil? (get e :jcr.property/values)))) x)
+        (map (fn [e] [(:db/id e) (clojure.set/intersection
+                                 value_dbids
+                                 (set (get e :jcr.property/values)))]) x)
+        (filter (fn [[dbid isect]] (not (empty? isect))) x)
+        (map (fn [[dbid isect]] [(first isect) dbid]) x)
+        (into {} x)))
 
-        uuid2propdbid (as-> tx x
-                            (filter (fn [e]
-                                      (and (= (get e :jcr.property/name)
-                                              "jcr:uuid")
-                                           (contains? refed_uuids
-                                                      (get e :jcr.value/string))))
+(defn prop-dbid-2-node-dbid [tx prop_dbids]
+  (as-> tx x
+        (filter (fn [e] (not (nil? (get e :jcr.node/properties)))) x)
+        (map (fn [e] [(:db/id e) (clojure.set/intersection
+                                 prop_dbids
+                                 (set (get e :jcr.node/properties)))]) x)
+        (filter (fn [[dbid isect]] (not (empty? isect))) x)
+        (map (fn [[dbid isect]] [(first isect) dbid]) x)
+        (into {} x)))
+
+(defn adjust-refs [tx]
+  (let [refed_uuids            (referenced-uuids tx)
+        uuid_2_value_dbid      (uuid-2-value-dbid tx refed_uuids)
+        value_dbid_2_prop_dbid (value-dbid-2-prop-dbid
+                                tx
+                                (set (vals uuid_2_value_dbid)))
+        prop_dbid_2_node_dbid  (prop-dbid-2-node-dbid
+                                tx
+                                (set (vals value_dbid_2_prop_dbid)))
+        uuid_2_node_dbid (as-> refed_uuids x
+                               (map #(vector % (->> %
+                                                    (get uuid_2_value_dbid)
+                                                    (get value_dbid_2_prop_dbid)
+                                                    (get prop_dbid_2_node_dbid)))
                                     x)
-                            (map (fn [e] [(get e :jcr.value/string)
-                                         (get e :db/id)]) x)
-                            (into {} x))
-        propdbids     (set (vals uuid2propdbid))
-
-        propdbid2nodedbid
-        
-        (as-> tx x
-              (filter (fn [e] (not (nil? (get e :jcr.node/properties)))) x)
-              (map (fn [e] [(:db/id e) (clojure.set/intersection
-                                       propdbids
-                                       (set (get e :jcr.node/properties)))]) x)
-              (filter (fn [[dbid isect]] (not (empty? isect))) x)
-              (map (fn [[dbid isect]] [(first isect) dbid]) x)
-              (into {} x))]
-    (as-> tx x
-          (map (fn [e]
-                 (cond (and (map? e)
-                            (= :jcr.value/reference
-                               (:jcr.property/value-attr e)))
-                       (update-in e [:jcr.value/reference]
-                                  (fn [old_value]
-                                    (as-> old_value x
-                                         (get uuid2propdbid x)
-                                         (get propdbid2nodedbid x
-                                              out-of-reach-node-dbid)))) 
-                       :else e)) x))))
+                               (into {} x))]
+    (map (fn [e]
+           (cond (and (map? e)
+                      (not (nil? (get e :jcr.value/reference))))
+                 (update-in e [:jcr.value/reference]
+                            (fn [old_value]
+                              (get uuid_2_node_dbid old_value old_value))) 
+                 :else e))
+         tx)))
 
 (defn import-tx
   "Liefert die Transaction mit der das file importiert wird"
@@ -131,7 +148,7 @@
   (let [tx-data (tu/translate-value (nested-entities file))
         import-root-db-id (first tx-data)
         tx-data-with-refs-adjusted (as-> (second tx-data) x
-                                         (adjust-refs x nil))]
+                                         (adjust-refs x))]
     (list import-root-db-id tx-data-with-refs-adjusted)))
 
 

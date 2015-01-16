@@ -11,5 +11,5 @@
   :profiles {:dev {:dependencies [[org.clojure/tools.namespace "0.2.4"]]
                    :source-paths ["dev"]}}
 
-  :jvm-opts ["-Xss10m" "-Xmx1200m"]
+  :jvm-opts ["-Xss10m" "-Xmx1400m"]
   )
