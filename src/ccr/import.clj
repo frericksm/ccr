@@ -57,14 +57,12 @@
       (assoc node-tx :jcr.node/position position))))
 
 (defn to-nested-entitites
-  " "
+  "Transforms the 'node' (parsed xml) to a nested clojure map"
   [node]
   (as-> node x
         (html/select x [:> :node])
         (map (partial node-as-entity nil) x)
-        (reduce (fn [a c] (concat a c) ) x)
-        ;(first x)
-        ))
+        (reduce (fn [a c] (concat a c) ) x)))
 
 (defn parse-import-file
   "Reads and parses a xml file containing the system view exported from a jcr repository"
@@ -80,7 +78,6 @@
   (as-> file x
         (parse-import-file x)
         (to-nested-entitites x)))
-
 
 (defn referenced-uuids [tx]
   (as-> tx x
@@ -151,9 +148,6 @@
                                          (adjust-refs x))]
     (list import-root-db-id tx-data-with-refs-adjusted)))
 
-
-
-
 (defn dump-import-tx
   "Converts the systemview  xml data from file 'systemview-xml-file' to a datomic transaction and
    dumps this transaction data to file 'tx-file'"
@@ -174,6 +168,10 @@
         ))
 
 (defn load-tx
+  "Loads the transaction 'tx' as child node of parent-node.
+  The value of 'tx' file contains an edn data structure like this: (#db/id [...] [...])
+  The first element of that list is the tempid of the root node to be imported.
+  The second element of the list contains the transaction data."
   [conn parent-node root-node-db-id tx]
   (let [parent-new-node-link-tx (tu/add-tx (:db/id parent-node) root-node-db-id)
         full-tx (concat parent-new-node-link-tx tx)

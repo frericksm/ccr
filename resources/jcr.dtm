@@ -91,26 +91,12 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/names
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type NAME"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/path
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/doc "Value of type PATH"
   :db.install/_attribute :db.part/db}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/paths
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type PATH"
-  :db.install/_attribute :db.part/db}
- 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/string
   :db/valueType :db.type/string
@@ -119,26 +105,12 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/strings
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type STRING"
-  :db.install/_attribute :db.part/db}
- 
- {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/binary
   :db/valueType :db.type/bytes
   :db/cardinality :db.cardinality/one
   :db/doc "Value of type BINARY"
   :db.install/_attribute :db.part/db}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/binarys
-  :db/valueType :db.type/bytes
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type BINARY"
-  :db.install/_attribute :db.part/db}
- 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/long
   :db/valueType :db.type/long
@@ -147,26 +119,12 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/longs
-  :db/valueType :db.type/long
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type LONG"
-  :db.install/_attribute :db.part/db}
- 
- {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/double
   :db/valueType :db.type/double
   :db/cardinality :db.cardinality/one
   :db/doc "Value of type DOUBLE"
   :db.install/_attribute :db.part/db}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/doubles
-  :db/valueType :db.type/double
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type DOUBLE"
-  :db.install/_attribute :db.part/db}
- 
  {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/date
   :db/valueType :db.type/instant
@@ -175,13 +133,6 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/dates
-  :db/valueType :db.type/instant
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type DATE"
-  :db.install/_attribute :db.part/db}
- 
- {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/boolean
   :db/valueType :db.type/boolean
   :db/cardinality :db.cardinality/one
@@ -189,28 +140,13 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/booleans
-  :db/valueType :db.type/boolean
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type BOOLEAN"
-  :db.install/_attribute :db.part/db}
- 
- {:db/id #db/id[:db.part/db]
   :db/ident :jcr.value/reference
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
   :db/doc "Value of type REFERENCE"
   :db.install/_attribute :db.part/db}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :jcr.value/references
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/many
-  :db/doc "Values of type REFERENCE"
-  :db.install/_attribute :db.part/db}
-
- 
-  ;; DB functions
+ ;; DB functions
 
  {:db/id #db/id[:db.part/user]
   :db/ident :append-position-in-scope
