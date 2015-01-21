@@ -1,43 +1,35 @@
 (ns ccr.repository
   (:require [datomic.api :as d  :only [q db]]
-            [clojure.pprint]
             [clojure.java.io :as io]
-            [ccr.nodetypes :as nt]
-            ))
-
+            [ccr.nodetypes]
+            [ccr.session]
+            [ccr.workspace]
+            [ccr])
+  (:import [ccr.session.Session]))
 
 (def schema-tx (read-string (slurp (io/resource "jcr.dtm"))))
 
 (defn create-schema [conn]
   @(d/transact conn schema-tx))
 
-(defn create-workspace [conn workspace-name]
-  (as-> conn x
-        (d/transact x
-                    [{:db/id #db/id[:db.part/user -1]
-                      :jcr.node/name ""}
-                     {:db/id #db/id[:db.part/user -2]
-                      :jcr.workspace/name workspace-name
-                      :jcr.workspace/rootNode #db/id[:db.part/user -1]}])
-        (deref x)
-        (:db-after x)))
+(defrecord ImmutableRepository [uri connection]
+  ccr/Repository
+  
+  ;;"Erzeugt eine Session."
+  (login [this credentials workspace-name]
+    (let [db   (d/db connection)
+          workspace (ccr.workspace/workspace db workspace-name)]
+       (ccr.session.Session. this workspace db)))
+  
+  (login [this]
+     (ccr/login this nil "default")))
 
-(defn repository [uri]
-  (let [created (d/create-database uri)
-        conn (d/connect uri)]
-    (if created (do  (create-schema conn)
-                     ;(nt/load-builtin-node-types conn)
-                     (create-workspace conn "default")))
-    {:uri uri
-     :connection conn}))
+(defn repository [parameters]
+  (if-let [uri (get parameters "ccr.datomic.uri")]
+    (let [created (d/create-database uri)
+          conn    (d/connect uri)]
+      (if created (do  (create-schema conn)
+                       ;;(ccr.nodetypes/load-builtin-node-types conn)
+                       (ccr.workspace/create-workspace conn "default")))
+      (->ImmutableRepository uri conn))))
 
-(defn start [system]
-  (let [uri (get-in system [:uri])
-        repo (repository uri)]
-    (assoc-in system [:repository] repo)))
-
-(defn stop [system]
-  (let [uri (get-in system [:db :uri])
-        ;deleted (d/delete-database uri)
-        ]
-    (assoc-in system [:db :conn] nil)))

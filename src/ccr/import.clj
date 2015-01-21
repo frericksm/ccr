@@ -174,9 +174,8 @@
   The second element of the list contains the transaction data."
   [conn parent-node root-node-db-id tx]
   (let [parent-new-node-link-tx (tu/add-tx (:db/id parent-node) root-node-db-id)
-        full-tx (concat parent-new-node-link-tx tx)
-        {:keys [db-after]} (deref (d/transact conn full-tx))]
-    db-after))
+        full-tx (concat parent-new-node-link-tx tx)]
+    (d/transact-async conn full-tx)))
 
 (defn load-tx-file
   "Loads the transaction data contained in 'file' as child node of parent-node.
@@ -190,8 +189,7 @@ The second element of the list contains the transaction data."
         (clojure.edn/read {:readers *data-readers*} x)
         (load-tx (get-in session [:repository :connection]) parent-node
                  (first x)
-                 (second x))
-        (assoc session :db x)))
+                 (second x))))
 
 
 (defn import-xml
@@ -199,6 +197,5 @@ The second element of the list contains the transaction data."
   Liefert eine session, die den veränderten Zustand berücksichtigt"
   [session parent-node file]
   (let [conn (get-in session [:repository :connection])
-        [root-node-db-id tx] (import-tx parent-node file)
-        db-after (load-tx conn  parent-node root-node-db-id tx)]
-    (assoc session :db db-after)))
+        [root-node-db-id tx] (import-tx parent-node file)]
+    (load-tx conn  parent-node root-node-db-id tx)))

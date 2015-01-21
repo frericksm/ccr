@@ -1,8 +1,5 @@
 (ns ccr.tree
-  (:require [datomic.api :as d  :only [q db]])
-  ;;(:require clojure.pprint)
-  )
-
+  (:require [datomic.api :as d  :only [q db]]))
 
 (defn node? [item]
   (contains? item :jcr.node/name))
@@ -10,7 +7,9 @@
 (defn item? [item]
   (contains? item :jcr.property/name))
 
-(defn item-parent [ item]
+(defn item-parent
+  ""
+  [item]
   (cond
    (node? item) (->> (get item :jcr.node/_children) first) 
    (item? item) (->> (get item :jcr.node/_properties) first )))
@@ -84,13 +83,13 @@
     (as-> (get node :jcr.node/children) x
           (filter #(= basePathSegment (get % :jcr.node/name)) x)
           (sort-by :jcr.node/position x)
-          (nth x index))))
+          (if (> (count x) index) (nth x index)))))
 
 
 (defn item-by-path [session path]
   (let [path_of_names (as-> (clojure.string/split path #"/") x
                             (filter #(not (empty? %)) x))
-        rn (->> session :workspace :jcr.workspace/rootNode)]
+        rn (ccr/root-node session)]
     (reduce (fn [current_node nodename]
               (if-let [c (child-node current_node nodename)]
                 c
@@ -103,11 +102,11 @@
 (defn properties [node]
   (get node :jcr.node/properties))
 
-(defn property [node property-name]
+(defn property
+  "Returns the property of "[node property-name]
   (->> (get node :jcr.node/properties)
        (filter #(= property-name (get % :jcr.property/name)))
-       first
-       ))
+       first))
 
 (defn property-value [property]
   (->> (keys property)
