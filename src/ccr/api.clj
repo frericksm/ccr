@@ -1,4 +1,4 @@
-(ns ccr)
+(ns ccr.api)
 
 (defprotocol Repository
   "The entry point into the content repository."

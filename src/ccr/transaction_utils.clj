@@ -1,10 +1,11 @@
 (ns ccr.transaction-utils
-  (:require [clojure.data.xml :as xml]
-            [datomic.api :as d  :only [q db]]
-            [clojure.java.io :as io]
+  (:require [clojure.data.codec.base64 :as b64]
+            [clojure.data.xml :as xml]
             [clojure.instant :as instant]
+            [clojure.java.io :as io]
+            [datomic.api :as d  :only [q db]]
             [net.cgrand.enlive-html :as html]
-            [clojure.data.codec.base64 :as b64]))
+            ))
 
 (defn add-tx [node-id child-id]
   [{:db/id             node-id

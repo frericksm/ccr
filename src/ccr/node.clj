@@ -1,15 +1,15 @@
 (ns ccr.node
-  (:require [ccr]))
+  (:require [ccr.api]))
 
 
-(defrecord NodeImpl []
-  ccr/Node
+(defrecord NodeImpl [session id]
+  ccr.api/Node
 
-  (add-node [this ^String relPath]
+  (add-node [this relPath]
    
     )
 
-  (add-node [this ^String replPath ^String primaryNodeTypeName]
+  (add-node [this replPath primaryNodeTypeName]
     )
   
   (definition [this]
@@ -40,7 +40,7 @@
   
 
   
-  ccr/Item
+  ccr.api/Item
 
   (ancestor [this depth]
     )
@@ -80,4 +80,5 @@
 
   )
 
-
+(defn node [session id]
+   (->NodeImpl session id))

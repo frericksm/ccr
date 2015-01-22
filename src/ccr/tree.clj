@@ -1,5 +1,6 @@
 (ns ccr.tree
-  (:require [datomic.api :as d  :only [q db]]))
+  (:require [ccr.api]
+            [datomic.api :as d  :only [q db]]))
 
 (defn node? [item]
   (contains? item :jcr.node/name))
@@ -89,7 +90,7 @@
 (defn item-by-path [session path]
   (let [path_of_names (as-> (clojure.string/split path #"/") x
                             (filter #(not (empty? %)) x))
-        rn (ccr/root-node session)]
+        rn (ccr.api/root-node session)]
     (reduce (fn [current_node nodename]
               (if-let [c (child-node current_node nodename)]
                 c

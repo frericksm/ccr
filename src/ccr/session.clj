@@ -1,11 +1,11 @@
 (ns ccr.session
-  (:require [ccr]
+  (:require [ccr.api]
             [datomic.api :as d  :only [q db]]
             ))
 
 
 (deftype Session [repository ws db]
-  ccr/Session
+  ccr.api/Session
   (root-node [this]
     (let [weid  (get ws :workspace-entitiy-id)]
       (->> (d/q '[:find ?r

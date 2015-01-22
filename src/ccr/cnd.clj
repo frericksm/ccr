@@ -1,9 +1,9 @@
 (ns ccr.cnd
-  (:require [instaparse.core :as insta]
-            [clojure.java.io :as io]
-            [net.cgrand.enlive-html :as html]
+  (:require [clojure.java.io :as io]
+            [ccr.transaction-utils :as tu]
             [datomic.api :as d  :only [q db]]
-            [ccr.transaction-utils :as tu]))
+            [instaparse.core :as insta]
+            [net.cgrand.enlive-html :as html]))
 
 (defn exists?
   "Returns true, if the selector applied to the node returns an empty list"

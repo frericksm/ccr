@@ -1,10 +1,11 @@
 (ns ccr.repository
-  (:require [datomic.api :as d  :only [q db]]
-            [clojure.java.io :as io]
+  (:require [clojure.java.io :as io]
+            [ccr.api]
             [ccr.nodetypes]
             [ccr.session]
             [ccr.workspace]
-            [ccr])
+            [datomic.api :as d  :only [q db]]
+            )
   (:import [ccr.session.Session]))
 
 (def schema-tx (read-string (slurp (io/resource "jcr.dtm"))))
@@ -13,7 +14,7 @@
   @(d/transact conn schema-tx))
 
 (defrecord ImmutableRepository [uri connection]
-  ccr/Repository
+  ccr.api/Repository
   
   ;;"Erzeugt eine Session."
   (login [this credentials workspace-name]
@@ -22,7 +23,7 @@
        (ccr.session.Session. this workspace db)))
   
   (login [this]
-     (ccr/login this nil "default")))
+     (ccr.api/login this nil "default")))
 
 (defn repository [parameters]
   (if-let [uri (get parameters "ccr.datomic.uri")]

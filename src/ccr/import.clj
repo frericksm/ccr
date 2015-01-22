@@ -1,10 +1,11 @@
 (ns ccr.import
   (:require [clojure.data.xml :as xml]
-            [datomic.api :as d  :only [q db]]
-            [clojure.java.io :as io]
             [clojure.instant :as instant]
+            [clojure.java.io :as io]
+            [ccr.transaction-utils :as tu]
+            [datomic.api :as d  :only [q db]]
             [net.cgrand.enlive-html :as html]
-            [ccr.transaction-utils :as tu]))
+            ))
 
 (defn trans-single-value [type val]
   (case type
