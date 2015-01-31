@@ -198,5 +198,5 @@ The second element of the list contains the transaction data."
   Liefert eine session, die den veränderten Zustand berücksichtigt"
   [session parent-node file]
   (let [conn (get-in session [:repository :connection])
-        [root-node-db-id tx] (import-tx parent-node file)]
+        [root-node-db-id tx] (import-tx file)]
     (load-tx conn  parent-node root-node-db-id tx)))
