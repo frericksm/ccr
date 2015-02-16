@@ -26,11 +26,13 @@
      (ccr.api/login this nil "default")))
 
 (defn repository [parameters]
-  (if-let [uri (get parameters "ccr.datomic.uri")]
-    (let [created (d/create-database uri)
-          conn    (d/connect uri)]
-      (if created (do  (create-schema conn)
-                       ;;(ccr.nodetypes/load-builtin-node-types conn)
-                       (ccr.workspace/create-workspace conn "default")))
-      (->ImmutableRepository uri conn))))
+  (try 
+    (if-let [uri (get parameters "ccr.datomic.uri")]
+      (let [created (d/create-database uri)
+            conn    (d/connect uri)]
+        (if created (do  (create-schema conn)
+                         ;;(ccr.nodetypes/load-builtin-node-types conn)
+                         (ccr.workspace/create-workspace conn "default")))
+        (->ImmutableRepository uri conn)))
+    (catch Exception e)))
 
