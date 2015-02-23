@@ -59,42 +59,6 @@
   (stop)
   (refresh :after 'user/go))
 
-(init)
+;(init)
 
 
-(comment
-  (import/start system)
-
-  (def tx (d/transact-async (->> system :db :conn ) (read-string (slurp "c:/1111/out.txt"))))
-  (def db (d/db (->> system :db :conn)))
-
-  (->> (d/q '[:find ?e 
-                  :in $ ?a ?pn ?pv
-                  :where 
-                  [?v ?a ?pv]
-                  [?p :jcr.property/values ?v]
-                  [?p :jcr.property/name ?pn]
-                  [?e :jcr.node/properties ?p]
-                  ]                   
-                db 
-                :jcr.value/string
-                "jcr:uuid" 
-                "02714eb2-1a0d-4107-b85f-2cbad748731f")
-           (map #(d/entity db (first %)))
-           (map d/touch)
-           )
-
-  (->> (d/q '[:find ?e 
-              :in $ ?a ?pn ?pv
-              :where 
-              [?v ?a ?pv]
-              [?p :jcr.property/values ?v]
-              [?p :jcr.property/name ?pn]
-              [?e :jcr.node/properties ?p]
-              ]                   
-            db 
-            :jcr.value/boolean
-            "isp:hidden" 
-            false)
-       count
-       ))
