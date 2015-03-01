@@ -1,4 +1,4 @@
-(ns ccr.system)
+(ns ccr.core.system)
 
 (defn system
   "Returns a new instance of the whole application."

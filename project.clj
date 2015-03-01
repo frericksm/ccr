@@ -7,7 +7,8 @@
                  [instaparse "1.3.5"]
                  [enlive "1.1.5"]
                  [javax.jcr/jcr "2.0"]
-                 [org.clojure/data.codec "0.1.0"]]
+                 [org.clojure/data.codec "0.1.0"]
+                 [org.clojure/tools.logging "0.3.1"]]
 
   :repositories {"my.datomic.com" {:url "https://my.datomic.com/repo"
                                    :creds :gpg}}

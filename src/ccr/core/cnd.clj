@@ -1,6 +1,6 @@
-(ns ccr.cnd
+(ns ccr.core.cnd
   (:require [clojure.java.io :as io]
-            [ccr.transaction-utils :as tu]
+            [ccr.core.transaction-utils :as tu]
             [datomic.api :as d  :only [q db]]
             [instaparse.core :as insta]
             [net.cgrand.enlive-html :as html]))

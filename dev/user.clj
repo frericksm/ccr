@@ -2,6 +2,17 @@
   "Tools for interactive development with the REPL. This file should
   not be included in a production build of the application."
   (:require
+   [ccr.api.repository :as r]
+   [ccr.api.session :as s]
+   [ccr.core.cnd :as cnd]
+   [ccr.core.import :as import]
+   [ccr.core.nodetype :as nt]
+   [ccr.core.repository :as repository]
+   [ccr.core.session :as session]
+   [ccr.core.system :as system]
+   [ccr.core.tree :as tree]
+   [clojure.data.zip :as z]
+   [clojure.data.zip.xml :as zx]
    [clojure.java.io :as io]
    [clojure.java.javadoc :refer (javadoc)]
    [clojure.pprint :refer (pprint)]
@@ -11,17 +22,8 @@
    [clojure.string :as str]
    [clojure.test :as test]
    [clojure.tools.namespace.repl :refer (refresh refresh-all)]
-   [ccr.system :as system]
-   [ccr.import :as import]
-   [ccr.repository :as repository]
-   [ccr.session :as session]
-   [ccr.tree :as tree]
-   [ccr.cnd :as cnd]
-   [ccr.nodetypes :as nt]
-   [datomic.api :as d  :only [q db]]
    [clojure.zip :as zip]
-   [clojure.data.zip :as z]
-   [clojure.data.zip.xml :as zx]
+   [datomic.api :as d  :only [q db]]
    [net.cgrand.enlive-html :as html]
    ))
 

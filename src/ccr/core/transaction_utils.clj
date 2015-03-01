@@ -1,4 +1,4 @@
-(ns ccr.transaction-utils
+(ns ccr.core.transaction-utils
   (:require [clojure.data.codec.base64 :as b64]
             [clojure.data.xml :as xml]
             [clojure.instant :as instant]

@@ -1,5 +1,5 @@
-(ns ccr.nodetypes
-  (:require [ccr.cnd :as cnd]
+(ns ccr.core.nodetype
+  (:require [ccr.core.cnd :as cnd]
             [datomic.api :as d  :only [q db]]))
 
 (defn load-node-types

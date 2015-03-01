@@ -1,3 +1,5 @@
+(require '[boot.core])
+
 (set-env!
  :source-paths #{"src"}
  :resource-paths #{"resources"}
@@ -7,13 +9,15 @@
                  [instaparse "1.3.5"]
                  [enlive "1.1.5"]
                  [javax.jcr/jcr "2.0"]
-                 [org.clojure/data.codec "0.1.0"]])
+                 [org.clojure/data.codec "0.1.0"]
+                 ;;[com.datomic/datomic-free "0.9.5078" :exclusions [joda-time]]
+                 ])
 
-(task-options!
- repl {:server true
-       :port 44444
-       ;;:init-ns 'user
-       })
+
+(task-options! repl
+               {:server true
+                :port 44444
+                :eval "(in-ns user)"})
 
 (deftask add-datomic-pro-dependencies
   "Add datomic pro and sql storage dependencies. In particular: DB2)"
@@ -48,12 +52,19 @@
             #(concat % '[[org.clojure/tools.namespace "0.2.4"]]))
   identity)
 
+(deftask load-data-readers
+  "Setup for development"
+  []
+  (boot.core/load-data-readers!)
+  identity)
+
 (deftask dev-repl
   "Start repl with extended develop classpath"
   []
   (comp ;(setup-develop)
-        (add-development-dependencies)
-        (repl)
-        (wait)))
+   (add-development-dependencies)
+   ;(load-data-readers)
+   (repl)
+   (wait)))
 
 

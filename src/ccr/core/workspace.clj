@@ -1,10 +1,11 @@
-(ns ccr.workspace
-  (:require [ccr.api]
-            [ccr.session :as s]
+(ns ccr.core.workspace
+  (:require [ccr.api.workspace]
+            [ccr.core.session :as s]
             [datomic.api :as d  :only [q db]]))
 
 (defrecord ImmutableWorkspace [workspace-name workspace-entitiy-id]
-  ccr.api/Workspace)
+  ccr.api.workspace/Workspace
+  (node-type-manager [this]))
 
 (defn create-workspace [conn workspace-name]
   (as-> conn x

@@ -1,8 +1,8 @@
-(ns ccr.import
+(ns ccr.core.import
   (:require [clojure.data.xml :as xml]
             [clojure.instant :as instant]
             [clojure.java.io :as io]
-            [ccr.transaction-utils :as tu]
+            [ccr.core.transaction-utils :as tu]
             [datomic.api :as d  :only [q db]]
             [net.cgrand.enlive-html :as html]
             ))

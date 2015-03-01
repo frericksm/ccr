@@ -1,17 +1,17 @@
-(ns ccr.core-test
+(ns ccr.api.repository-test
   (:require [clojure.test :refer :all]
-            [ccr.repository :as repository]
-            [ccr.api :as api]
+            [ccr.core.repository :as repository]
+            [ccr.api.repository :as api]
             ))
-
 
 (deftest test-create-repository
   (testing "with empty mem db"
     (let [r (repository/repository {"ccr.datomic.uri" "datomic:mem://jcr"})]
       (is (not (nil? r)))))
   
-  (testing "with illegal db uri"
-    (is (nil? (repository/repository {"ccr.datomic.uri" "datomic:mem1://jcr"}))))
+  (testing "with invalid db uri"
+    (is (thrown? IllegalArgumentException
+                 (repository/repository {"ccr.datomic.uri" "datomic:mem1://jcr"}))))
   
   (testing "with wrong parameter"
     (is (nil? (repository/repository {"ccr.datomic.uri.wrong" "datomic:mem://jcr"}))))
