@@ -19,10 +19,10 @@
   )
 
 (deftest test-login 
-  (testing "with empty reposiory"
+  (testing "with empty repository"
     (let [r (repository/repository {"ccr.datomic.uri" "datomic:mem://jcr"})
           s (api/login r)]
       (is (not (nil? s)))))
   
-  (testing "without reposiory"
+  (testing "without repository"
     (is (thrown? IllegalArgumentException (api/login nil)))))
