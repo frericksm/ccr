@@ -6,7 +6,7 @@
   ccr.api.node/Node
 
   (add-node [this relPath]
-   "a"
+   
     )
 
   (add-node [this replPath primaryNodeTypeName]
