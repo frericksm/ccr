@@ -3,13 +3,15 @@
             [ccr.api.repository :as repository]
             [ccr.api.session :as session]
             [ccr.core.nodetype :as nt]
+            [ccr.core.repository :as crepository]
             [datomic.api :as d  :only [q db]]
             ))
 
 (def db-uri "datomic:mem://jcr")
 
 (defn setup-my-fixture [f]
-  (d/create-database db-uri)
+  (if (d/create-database db-uri)
+    (->> (d/connect db-uri) (crepository/create-schema)))
   (f)  
   (d/delete-database db-uri))
 
@@ -24,9 +26,11 @@
       (is (not (nil? tx-data))))))
 
 (deftest test-read-nodetype
-  (testing "with empty mem db"
-    (let [conn (d/connect db-uri)
-          tx-data (nt/load-builtin-node-types conn)]
-      (is (not (nil? tx-data))))))
+  (let [conn (d/connect db-uri)
+        tx-data (nt/load-builtin-node-types conn)
+        db (d/db conn)]
+    (testing "with empty mem db"
+      (is (= "nt:base"  (nt/nodetype db "nt:base")))))
+  )
 
 

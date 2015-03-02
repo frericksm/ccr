@@ -23,5 +23,5 @@
                     [com.datomic/datomic-pro "0.9.5130"
                      :exclusions [joda-time]]]}
              }
-  :jvm-opts ["-Xss5m" "-Xmx2g"]
+  :jvm-opts ["-Xss5m" "-Xmx1g"]
   )
