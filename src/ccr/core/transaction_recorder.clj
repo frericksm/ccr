@@ -19,20 +19,19 @@
   :transact-result (like the return value of the transact function),
   :as-if-transction (transaction using entity-ids form previous as-if-db) and
   :tempid-transction (transaction where all as-if-entity-ids are replaced by the initial temp-id if available). "
-  [session session-transaction]
-  (let [recording (:recording session)]
-    (swap! recording
-           (fn [current-value
-               session
-               session-transaction]
-             (let [db (current-db (:connection session) current-value)
-                   transaction (to-datomic-transaction session-transaction)
-                   new-transact-result (api/with db transaction)]
-               (cons {:tx-result new-transact-result
-                      :session-transaction session-transaction}
-                     current-value)))
-           session
-           session-transaction)))
+  [conn transaction-recorder-atom session-transaction]
+  (swap! transaction-recorder-atom
+         (fn [current-value
+              conn
+              session-transaction]
+           (let [db (current-db conn current-value)
+                 transaction (to-datomic-transaction session-transaction)
+                 new-transact-result (api/with db transaction)]
+             (cons {:tx-result new-transact-result
+                    :session-transaction session-transaction}
+                   current-value)))
+         conn
+         session-transaction))
 
 (defn intermediate-db-id-to-tempid-map [recording]
   (->> recording

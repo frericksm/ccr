@@ -13,14 +13,15 @@
 (defn create-schema [conn]
   @(d/transact conn schema-tx))
 
-(defrecord ImmutableRepository [uri connection]
+(defrecord ImmutableRepository [uri conn]
   ccr.api.repository/Repository
   
   ;;"Erzeugt eine Session."
   (login [this credentials workspace-name]
-    (let [db   (d/db connection)
-          workspace (ccr.core.workspace/workspace db workspace-name)]
-       (ccr.core.session.Session. this workspace db)))
+    (let [db   (d/db conn)
+          workspace (ccr.core.workspace/workspace db workspace-name)
+          transaction-recorder-atom (atom nil)]
+       (ccr.core.session.Session. this workspace conn transaction-recorder-atom)))
   
   (login [this]
      (ccr.api.repository/login this nil "default")))
