@@ -1,6 +1,27 @@
 (ns ccr.core.nodetype
-  (:require [ccr.core.cnd :as cnd]
-            [datomic.api :as d  :only [q db]]))
+  (:require   [ccr.api.nodetype]
+              [ccr.core.cnd :as cnd]
+              [datomic.api :as d  :only [q db]]
+              ))
+
+(defrecord NodeTypeImpl [db node-type-name]
+  ccr.api.nodetype/NodeType
+
+  (node-type? [this nodeTypeName]
+    )
+  
+  ccr.api.nodetype/NodeTypeDefinition
+  (node-type-name [this]
+    node-type-name
+    )
+
+  )
+
+(defn nodetype [db node-type-name]
+
+  (->NodeTypeImpl db node-type-name)
+  )
+
 
 (defn load-node-types
   "Loads the builtin nodetypes to datomic connection"
@@ -14,7 +35,7 @@
                    (as-> (cnd/builtin-nodetypes) x
                          (cnd/node-to-tx x))))
 
-(defn nodetype [db nodetype-name]
+(defn nodetype-query [db nodetype-name]
   (as-> (d/q '[:find ?e 
                :in $ ?v
                :where  

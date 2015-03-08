@@ -24,7 +24,13 @@
        (ccr.core.session.Session. this workspace conn transaction-recorder-atom)))
   
   (login [this]
-     (ccr.api.repository/login this nil "default")))
+    (ccr.api.repository/login this nil "default"))
+
+  ccr.api.repository/NodeTypeManager
+
+  (node-type [this node-type-name]
+
+    ))
 
 (defn repository [parameters]
   (try

@@ -30,7 +30,7 @@
 
   (same? [this otherItem]
     "Returns true if this Item object (the Java object instance) represents the same actual workspace item as the object otherItem.")
-
+ 
   (refresh [this keepChanges]
     "If keepChanges is false, this method discards all pending changes currently recorded in this Session that apply to this Item or any of its descendants (that is, the subgraph rooted at this Item)and returns all items to reflect the current saved state.")
   (remove-item [this]

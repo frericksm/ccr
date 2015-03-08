@@ -1,11 +1,12 @@
 (ns ccr.core.nodetype-test
-  (:require [clojure.test :refer :all]
-            [ccr.api.repository :as repository]
-            [ccr.api.session :as session]
-            [ccr.core.nodetype :as nt]
-            [ccr.core.repository :as crepository]
-            [datomic.api :as d  :only [q db]]
-            ))
+  (:require
+   [ccr.api.session :as session]
+   [ccr.api.nodetype :as ntapi]
+   [ccr.core.nodetype :as nt]
+   [ccr.core.repository :as crepository]
+   [clojure.test :refer :all]
+   [datomic.api :as d  :only [q db]]
+   ))
 
 (def db-uri "datomic:mem://jcr")
 
@@ -17,7 +18,7 @@
 
 (use-fixtures :each setup-my-fixture)
 
-(deftest test-load-builin-nodetypes
+(deftest test-load-builtin-nodetypes
   (testing "without conn"
     (is (thrown? java.lang.NullPointerException (nt/load-builtin-node-types nil))))
   (testing "with conn"
@@ -30,7 +31,7 @@
         tx-data (nt/load-builtin-node-types conn)
         db (d/db conn)]
     (testing "with empty mem db"
-      (is (= "nt:base"  (nt/nodetype db "nt:base")))))
+      (is (= "nt:base"  (ntapi/node-type-name (nt/nodetype db "nt:base"))))))
   )
 
 

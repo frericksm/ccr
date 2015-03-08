@@ -11,14 +11,17 @@
   (not (empty? (html/select node  selector))))
 
 (defn remove-nil-vals
-  "Returns a property entity map where the seq to key :jcr.property/values is cleaned from values and given a value to the key :jcr.value/position"
+  "Returns a property entity map where the seq to key :jcr.property/values is
+  a) cleaned from empty values and
+  b) each element in that seq expanded by a value to the key :jcr.value/position"
   [m]
   (update-in m [:jcr.property/values]
              (fn [val-seq]
                (as-> val-seq x
-                     (filter #(not (nil? (get % ((first (keys %)))))) x)
+                     (filter #(not (nil? (get % (first (keys %))))) x)
                      (map-indexed (fn [i v]
-                                    (assoc v :jcr.value/position i)) x)))))
+                                    (assoc v :jcr.value/position i)) x)
+                     (into [] x)))))
 
 (defn childnode-definition-properties
   "Returns a datomic transaction for a childnode definition. The parameter 'node' "
@@ -35,8 +38,7 @@
                             (filter (comp not nil?))
                             (first))
         sns            (exists? node [:node_attribute :sns])]
-    (map remove-nil-vals
-         [{:jcr.property/name "jcr:primaryType"
+    (as-> [{:jcr.property/name "jcr:primaryType"
            :jcr.property/value-attr :jcr.value/name
            :jcr.property/values [{:jcr.value/name "nt:childNodeDefinition"}]}
           {:jcr.property/name "jcr:name"
@@ -58,13 +60,16 @@
            :jcr.property/value-attr :jcr.value/name
            :jcr.property/values (->> required_types
                                      (map (fn [v]
-                                            {:jcr.value/name v})))}
+                                            {:jcr.value/name v}))
+                                     (into []))}
           {:jcr.property/name "jcr:defaultPrimaryType"
            :jcr.property/value-attr :jcr.value/name
            :jcr.property/values [{:jcr.value/name default_type}]}
           {:jcr.property/name "jcr:sameNameSiblings"
            :jcr.property/value-attr :jcr.value/boolean
-           :jcr.property/values [{:jcr.value/boolean sns}]}])))
+           :jcr.property/values [{:jcr.value/boolean sns}]}] x
+           (map remove-nil-vals x)
+           (into [] x))))
 
 (defn childnode-definition
   ""
@@ -111,56 +116,60 @@
                                        :operator html/text-node])
         full_text   (not (exists? node [:property_attribute :no_full_text]))
         query_orderable (not (exists? node [:property_attribute :no_query_order]))]
-    (map remove-nil-vals
-     [{:jcr.property/name "jcr:primaryType"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.property/values [{:jcr.value/name "nt:propertyDefinition"}]}
-      {:jcr.property/name "jcr:name"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.property/values [{:jcr.value/name  property_name}]}
-      {:jcr.property/name "jcr:autoCreated"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.property/values [{:jcr.value/boolean autocreated}]}
-      {:jcr.property/name "jcr:mandatory"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.property/values [{:jcr.value/boolean mandatory}]}
-      {:jcr.property/name "jcr:onParentVersion"
-       :jcr.property/value-attr :jcr.value/string
-       :jcr.property/values [{:jcr.value/string opv}]}
-      {:jcr.property/name "jcr:protected"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.property/values [{:jcr.value/boolean protected}]}
-      {:jcr.property/name "jcr:requiredType"
-       :jcr.property/value-attr :jcr.value/string
-       :jcr.property/values [{:jcr.value/string prop_type}]}
-      {:jcr.property/name "jcr:valueConstraints"
-       :jcr.property/value-attr :jcr.value/string
-       :jcr.property/values (->> value_constraints
-                                 (map (fn [v]
-                                        {:jcr.value/string v})))}
-      {:jcr.property/name "jcr:defaultValues"
-       :jcr.property/value-attr :jcr.value/string
-       :jcr.property/values (->> default_values
-                                 (map (fn [v]
-                                        {:jcr.value/string v})))}
-      {:jcr.property/name "jcr:multiple"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.property/values [{:jcr.value/boolean multiple}]}
-      {:jcr.property/name "jcr:availableQueryOperators"
-       :jcr.property/value-attr :jcr.value/name
-       :jcr.property/values (->> query_ops
-                                 (map (fn [v]
-                                        {:jcr.value/name v})))}
-      {:jcr.property/name "jcr:isFullTextSearchable"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.property/values [{:jcr.value/boolean full_text}]}
-      {:jcr.property/name "jcr:isQueryOrderable"
-       :jcr.property/value-attr :jcr.value/boolean
-       :jcr.property/values [{:jcr.value/boolean query_orderable}]}])))
+    (as-> [{:jcr.property/name "jcr:primaryType"
+            :jcr.property/value-attr :jcr.value/name
+            :jcr.property/values [{:jcr.value/name "nt:propertyDefinition"}]}
+           {:jcr.property/name "jcr:name"
+            :jcr.property/value-attr :jcr.value/name
+            :jcr.property/values [{:jcr.value/name  property_name}]}
+           {:jcr.property/name "jcr:autoCreated"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean autocreated}]}
+           {:jcr.property/name "jcr:mandatory"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean mandatory}]}
+           {:jcr.property/name "jcr:onParentVersion"
+            :jcr.property/value-attr :jcr.value/string
+            :jcr.property/values [{:jcr.value/string opv}]}
+           {:jcr.property/name "jcr:protected"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean protected}]}
+           {:jcr.property/name "jcr:requiredType"
+            :jcr.property/value-attr :jcr.value/string
+            :jcr.property/values [{:jcr.value/string prop_type}]}
+           {:jcr.property/name "jcr:valueConstraints"
+            :jcr.property/value-attr :jcr.value/string
+            :jcr.property/values (->> value_constraints
+                                      (map (fn [v]
+                                             {:jcr.value/string v}))
+                                      (into []))}
+           {:jcr.property/name "jcr:defaultValues"
+            :jcr.property/value-attr :jcr.value/string
+            :jcr.property/values (->> default_values
+                                      (map (fn [v]
+                                             {:jcr.value/string v}))
+                                      (into []))}
+           {:jcr.property/name "jcr:multiple"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean multiple}]}
+           {:jcr.property/name "jcr:availableQueryOperators"
+            :jcr.property/value-attr :jcr.value/name
+            :jcr.property/values (->> query_ops
+                                      (map (fn [v]
+                                             {:jcr.value/name v}))
+                                      (into []))}
+           {:jcr.property/name "jcr:isFullTextSearchable"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean full_text}]}
+           {:jcr.property/name "jcr:isQueryOrderable"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean query_orderable}]}] x
+            (map remove-nil-vals x)
+            (into [] x))))
 
 (defn property-definition  [node]
-  {:jcr.node/name "jcr:propertyDefinition"
-   :jcr.node/properties (property-definition-properties node)})
+  [{:jcr.node/name "jcr:propertyDefinition"
+    :jcr.node/properties (property-definition-properties node)}])
 
 (defn nodetype-properties [node]
   (let [nt_name         (first (html/select node #{[:node_type_name
@@ -177,8 +186,7 @@
         supertypes      (html/select node [:supertypes
                                            :string
                                            html/text-node])]
-    (map remove-nil-vals
-         [{:jcr.property/name "jcr:primaryType"
+    (as-> [{:jcr.property/name "jcr:primaryType"
            :jcr.property/value-attr :jcr.value/name
            :jcr.property/values [{:jcr.value/name "nt:nodeType"}]}
           {:jcr.property/name "jcr:nodeTypeName"
@@ -188,7 +196,8 @@
            :jcr.property/value-attr :jcr.value/name
            :jcr.property/values (->> supertypes
                                      (map (fn [v]
-                                            {:jcr.value/name v})))}
+                                            {:jcr.value/name v}))
+                                     (into []))}
           {:jcr.property/name "jcr:isAbstract"
            :jcr.property/value-attr :jcr.value/boolean
            :jcr.property/values [{:jcr.value/boolean abstract}]}
@@ -203,7 +212,9 @@
            :jcr.property/values [{:jcr.value/boolean orderable}]}
           {:jcr.property/name "jcr:primaryItemName"
            :jcr.property/value-attr :jcr.value/name
-           :jcr.property/values [{:jcr.value/name primaryitem}]}])))
+           :jcr.property/values [{:jcr.value/name primaryitem}]}] x
+           (map remove-nil-vals x)
+           (into [] x))))
 
 (defn nodetype
   "Returns a nested map representing a nodetype "
@@ -219,8 +230,7 @@
                               (map childnode-definition x))
         nodetype_properties (nodetype-properties node)]
     {:jcr.node/name nt_name
-     :jcr.node/children (concat property_defs
-                                childnode_defs) 
+     :jcr.node/children (vec (concat property_defs  childnode_defs)) 
      :jcr.node/properties nodetype_properties}))
 
 (defn node-to-tx
@@ -230,8 +240,10 @@
   (as-> node x
         (html/select x [:node_type_def])
         (map nodetype x)
-        (apply concat x)
-        (tu/translate-value x)))
+        (vec x)
+        (tu/translate-value x)
+        (second x)
+        ))
 
 (def cnd-parser
   "A function with one parameter of type String. Assumes that the string is in cnd format. Parses the string and returns the syntax tree in :enlive format"
