@@ -34,4 +34,29 @@
       (is (= "nt:base"  (ntapi/node-type-name (nt/nodetype db "nt:base"))))))
   )
 
+(deftest test-read-nodetype-properties
+  (let [conn (d/connect db-uri)
+        tx-data (nt/load-builtin-node-types conn)
+        db (d/db conn)]
+    (testing "Read declared supertypes from nodetype with one supertype"
+      (is (= ["nt:hierarchyNode"]
+             (ntapi/declared-supertype-names (nt/nodetype db "nt:linkedFile")))))
+
+    (testing "Read declared supertypes from nodetype with many supertypes"
+      (is (= ["mix:lastModified" "mix:mimeType"]
+             (ntapi/declared-supertype-names (nt/nodetype db "nt:resource")))))
+
+    (testing "Read jcr:isAbstract"
+      (is (= false
+             (ntapi/abstract? (nt/nodetype db "nt:resource")))))
+
+    (testing "Read jcr:isMixin"
+      (is (= true
+             (ntapi/mixin? (nt/nodetype db "mix:lifecycle")))))
+
+    (testing "Read jcr:primaryItemName"
+      (is (= "JCR:CONTENT"
+             (ntapi/primary-item-name (nt/nodetype db "nt:file")))))
+    
+    ))
 
