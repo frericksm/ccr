@@ -32,6 +32,11 @@
    (property-value-query ?e "jcr:primaryType" "nt:nodeType")
    (property-value-query ?e "jcr:nodeTypeName" ?v)))
 
+(defn property-query [?e property-name]
+  (let [?pv (gensym "?pv")]
+    (merge-queries {:find [?pv]}
+                   (property-value-query ?e property-name ?pv))))
+
 (defn nodetype-property-query [nodetype-name property-name]
   (let [?pv (gensym "?pv")
         ?e  (gensym "?e")]  
@@ -47,11 +52,20 @@
                    (node-type-query ?e nodetype-name))))
 
 
+(defn effective-node-type [db node-type-name])
+
 (defrecord NodeDefinition [db id]
 
   ccr.api.nodetype/NodeDefinition
 
   ccr.api.nodetype/ItemDefinition
+  (child-item-name [this] 
+    (as-> id x
+      (property-query x "jcr:name")
+      (d/q x db) 
+      (map first x)
+      (first x))
+    )
 )
 
 (defrecord PropertyDefinition [db id]
@@ -59,14 +73,20 @@
   ccr.api.nodetype/PropertyDefinition
 
   ccr.api.nodetype/ItemDefinition
+  (child-item-name [this] "ups"
+    )
 )
 
 (defrecord NodeType [db node-type-name]
   ccr.api.nodetype/NodeType
 
   (can-add-child-node?
-    [this childNodeName])
-
+    [this childNodeName]
+    (as-> (ccr.api.nodetype/declared-child-node-definitions this) x
+      (filter (fn [nd] (or (= (ccr.api.nodetype/child-item-name nd) childNodeName)
+                           (= (ccr.api.nodetype/child-item-name nd) "*"))) x)
+      (not (empty? x))))
+  
   (can-add-child-node?
     [this childNodeName nodeTypeName])
 
@@ -76,7 +96,11 @@
   ccr.api.nodetype/NodeTypeDefinition
 
   (node-type-name [this]
-    node-type-name)
+    (as-> node-type-name x
+      (nodetype-property-query x "jcr:nodeTypeName")
+      (d/q x db) 
+      (map first x)
+      (first x)))
   
   (declared-supertype-names [this]
     (as-> node-type-name x
@@ -100,6 +124,14 @@
       (first x)
       (true? x)))
 
+  (orderable-child-nodes? [this]
+    (as-> node-type-name x
+      (nodetype-property-query x "jcr:hasOrderableChildNodes")
+      (d/q x db) 
+      (map first x)
+      (first x)
+      (true? x)))
+
   (primary-item-name [this]
     (as-> node-type-name x
       (nodetype-property-query x "jcr:primaryItemName")
@@ -112,14 +144,14 @@
       (nodetype-child-query x "jcr:propertyDefinition")
       (d/q x db) 
       (map first x)
-      (map (fn [id] (->PropertyDefinition db id)))))
+      (map (fn [id] (->PropertyDefinition db id)) x)))
 
   (declared-child-node-definitions [this]
     (as-> node-type-name x
       (nodetype-child-query x "jcr:childNodeDefinition")
       (d/q x db) 
       (map first x)
-      (map (fn [id] (->NodeDefinition db id)))))
+      (map (fn [id] (->NodeDefinition db id)) x)))
   )
 
 (defn nodetype [db node-type-name]
