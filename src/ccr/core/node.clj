@@ -2,7 +2,7 @@
   (:require [ccr.api.node]))
 
 
-(defrecord NodeImpl [session id]
+(deftype NodeImpl [session id]
   ccr.api.node/Node
 
   (add-node [this relPath]

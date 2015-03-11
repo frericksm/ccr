@@ -7,70 +7,68 @@
 (defn merge-queries
   "Merges datomic queries (which are in map form)"
   [& queries]
-  (apply merge-with (comp vec concat) queries))
+  (apply merge-with into queries))
 
-(defn node-type-query [?e ?v]
-  {:where [['?p1 :jcr.property/name "jcr:primaryType"]
-           ['?p1 :jcr.property/value-attr '?va1]
-           ['?p1 :jcr.property/values '?values1]
-           ['?values1 '?va1 "nt:nodeType"]
-           [?e :jcr.node/properties '?p1]
-           
-           ['?p2 :jcr.property/name "jcr:nodeTypeName"]
-           ['?p2 :jcr.property/value-attr '?va2]
-           ['?p2 :jcr.property/values '?values2]
-           ['?values2 '?va2 ?v]
-           [?e :jcr.node/properties '?p2]]})
 
-(defn property-value-query [property-name ?e ?pv]
-  {:where [['?p3 :jcr.property/name property-name]
-           ['?p3 :jcr.property/value-attr '?va3]
-           ['?p3 :jcr.property/values '?values3]
-           ['?values3 '?va3 '?pv]
-           [?e :jcr.node/properties '?p3]]})
+;; https://www.youtube.com/watch?v=YHctJMUG8bI 
+;; Queries as data
+
+(defn property-value-query [?e ?property-name ?value]
+  (let [?p  (gensym "?p")
+        ?a  (gensym "?a")
+        ?vs (gensym "?vs")]
+    {:where [[?e :jcr.node/properties ?p]
+             [?p :jcr.property/name ?property-name]
+             [?p :jcr.property/value-attr ?a]
+             [?p :jcr.property/values ?vs]
+             [?vs ?a ?value]]}))
 
 (defn child-node-query [?e ?c ?name]
-  {:where [[?c :jcr.node/name ?name]
-           [?e :jcr.node/children ?c]]})
+  {:where [[?e :jcr.node/children ?c]
+           [?c :jcr.node/name ?name]]})
 
-(defn abstract?-query [nodetype-name]
-  (merge-queries {:find ['?pv]
-                  :in   ['$]}
-                 (property-value-query "jcr:isAbstract" '?e '?pv)
-                 (node-type-query '?e nodetype-name)))
+(defn node-type-query [?e ?v]
+  (merge-queries
+   (property-value-query ?e "jcr:primaryType" "nt:nodeType")
+   (property-value-query ?e "jcr:nodeTypeName" ?v)))
 
-(defn mixin?-query [nodetype-name]
-  (merge-queries {:find ['?pv]
-                  :in   ['$]}
-                 (property-value-query "jcr:isMixin" '?e '?pv)
-                 (node-type-query '?e nodetype-name)))
+(defn nodetype-property-query [nodetype-name property-name]
+  (let [?pv (gensym "?pv")
+        ?e  (gensym "?e")]  
+    (merge-queries {:find [?pv]}
+                   (property-value-query ?e property-name ?pv)
+                   (node-type-query ?e nodetype-name))))
 
-(defn primary-iten-name-query [nodetype-name]
-  (merge-queries {:find ['?pv]
-                  :in   ['$]}
-                 (property-value-query "jcr:primaryItemName" '?e '?pv)
-                 (node-type-query '?e nodetype-name)))
+(defn nodetype-child-query [nodetype-name childname]
+  (let [?c (gensym "?c")
+        ?e (gensym "?e")]
+    (merge-queries {:find [?c]}
+                   (child-node-query ?e ?c childname)
+                   (node-type-query ?e nodetype-name))))
 
-(defn declared-supertypes-query [nodetype-name]
-  (merge-queries {:find ['?pv]
-                  :in   ['$]}
-                 (property-value-query "jcr:supertypes" '?e '?pv)
-                 (node-type-query '?e nodetype-name)))
 
-(defn declared-property-definitions-query [nodetype-name]
-  (merge-queries {:find ['?c]
-                  :in   ['$]}
-                 (child-node-query '?e '?c "jcr:propertyDefinition")
-                 (node-type-query '?e nodetype-name)))
+(defrecord NodeDefinition []
 
-(defn declared-child-node-definitions-query [nodetype-name]
-  (merge-queries {:find ['?c]
-                  :in   ['$]}
-                 (child-node-query '?e '?c "jcr:childNodeDefinition")
-                 (node-type-query '?e nodetype-name)))
+  ccr.api.nodetype/NodeDefinition
+
+  ccr.api.nodetype/ItemDefinition
+)
+
+(defrecord PropertyDefinition []
+
+  ccr.api.nodetype/PropertyDefinition
+
+  ccr.api.nodetype/ItemDefinition
+)
 
 (defrecord NodeTypeImpl [db node-type-name]
   ccr.api.nodetype/NodeType
+
+  (can-add-child-node?
+    [this childNodeName])
+
+  (can-add-child-node?
+    [this childNodeName nodeTypeName])
 
   (node-type? [this nodeTypeName]
     (= nodeTypeName node-type-name))
@@ -82,44 +80,44 @@
   
   (declared-supertype-names [this]
     (as-> node-type-name x
-          (declared-supertypes-query x)
-          (d/q x db) 
-          (map first x)))
+      (nodetype-property-query x "jcr:supertypes")
+      (d/q x db) 
+      (map first x)))
 
   (abstract? [this]
     (as-> node-type-name x
-          (abstract?-query x)
-          (d/q x db) 
-          (map first x)
-          (first x)
-          (true? x)))
+      (nodetype-property-query x "jcr:isAbstract")
+      (d/q x db) 
+      (map first x)
+      (first x)
+      (true? x)))
 
   (mixin? [this]
     (as-> node-type-name x
-          (mixin?-query x)
-          (d/q x db) 
-          (map first x)
-          (first x)
-          (true? x)))
+      (nodetype-property-query x "jcr:isMixin")
+      (d/q x db) 
+      (map first x)
+      (first x)
+      (true? x)))
 
   (primary-item-name [this]
     (as-> node-type-name x
-          (primary-iten-name-query x)
-          (d/q x db) 
-          (map first x)
-          (first x)))
+      (nodetype-property-query x "jcr:primaryItemName")
+      (d/q x db) 
+      (map first x)
+      (first x)))
 
   (declared-property-definitions [this]
     (as-> node-type-name x
-          (declared-property-definitions-query x)
-          (d/q x db) 
-          (map first x)))
+      (nodetype-child-query x "jcr:propertyDefinition")
+      (d/q x db) 
+      (map first x)))
 
   (declared-child-node-definitions [this]
     (as-> node-type-name x
-          (declared-child-node-definitions-query x)
-          (d/q x db) 
-          (map first x)))
+      (nodetype-child-query x "jcr:childNodeDefinition")
+      (d/q x db) 
+      (map first x)))
   )
 
 (defn nodetype [db node-type-name]
