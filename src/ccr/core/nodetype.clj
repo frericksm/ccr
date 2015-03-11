@@ -47,21 +47,21 @@
                    (node-type-query ?e nodetype-name))))
 
 
-(defrecord NodeDefinition []
+(defrecord NodeDefinition [db id]
 
   ccr.api.nodetype/NodeDefinition
 
   ccr.api.nodetype/ItemDefinition
 )
 
-(defrecord PropertyDefinition []
+(defrecord PropertyDefinition [db id]
 
   ccr.api.nodetype/PropertyDefinition
 
   ccr.api.nodetype/ItemDefinition
 )
 
-(defrecord NodeTypeImpl [db node-type-name]
+(defrecord NodeType [db node-type-name]
   ccr.api.nodetype/NodeType
 
   (can-add-child-node?
@@ -111,17 +111,19 @@
     (as-> node-type-name x
       (nodetype-child-query x "jcr:propertyDefinition")
       (d/q x db) 
-      (map first x)))
+      (map first x)
+      (map (fn [id] (->PropertyDefinition db id)))))
 
   (declared-child-node-definitions [this]
     (as-> node-type-name x
       (nodetype-child-query x "jcr:childNodeDefinition")
       (d/q x db) 
-      (map first x)))
+      (map first x)
+      (map (fn [id] (->NodeDefinition db id)))))
   )
 
 (defn nodetype [db node-type-name]
-  (->NodeTypeImpl db node-type-name))
+  (->NodeType db node-type-name))
 
 (defn load-node-types
   "Loads the builtin nodetypes to datomic connection"
