@@ -4,6 +4,20 @@
             [datomic.api :as d  :only [q db]]
             ))
 
+(declare nodetype)
+
+(defn load-node-types
+  "Loads the builtin nodetypes to datomic connection"
+  [connection tx-data]
+  (d/transact connection tx-data))
+
+(defn load-builtin-node-types
+  "Loads the builtin nodetypes to datomic connection"
+  [connection]
+  (load-node-types connection  
+                   (as-> (cnd/builtin-nodetypes) x
+                         (cnd/node-to-tx x))))
+
 (defn merge-queries
   "Merges datomic queries (which are in map form)"
   [& queries]
@@ -51,8 +65,25 @@
                    (child-node-query ?e ?c childname)
                    (node-type-query ?e nodetype-name))))
 
+(defn calc-supertype-names [db node-type]
+  (loop [dst1 (set (ccr.api.nodetype/declared-supertype-names node-type))]
+    (let [dst2 (as-> dst1 x
+                 (map (fn [supertyname] (nodetype db supertyname)) x)
+                 (map (fn [nt] 
+                        (ccr.api.nodetype/declared-supertype-names nt)) x)
+                 (apply concat x)
+                 (set x))]
+      (if (= (count dst1) (count  dst2))
+        dst1
+        (recur dst2)))))
 
-(defn effective-node-type [db node-type-name])
+
+(defn first-property-value [db id property-name]
+  (as-> id x
+    (property-query x property-name)
+    (d/q x db) 
+    (map first x)
+    (first x)))
 
 (defrecord NodeDefinition [db id]
 
@@ -60,22 +91,18 @@
 
   ccr.api.nodetype/ItemDefinition
   (child-item-name [this] 
-    (as-> id x
-      (property-query x "jcr:name")
-      (d/q x db) 
-      (map first x)
-      (first x))
-    )
-)
+    (first-property-value db id "jcr:name"))
+  )
+
+
 
 (defrecord PropertyDefinition [db id]
 
   ccr.api.nodetype/PropertyDefinition
 
   ccr.api.nodetype/ItemDefinition
-  (child-item-name [this] "ups"
-    )
-)
+  (child-item-name [this] 
+    (first-property-value db id "jcr:name")))
 
 (defrecord NodeType [db node-type-name]
   ccr.api.nodetype/NodeType
@@ -84,11 +111,16 @@
     [this childNodeName]
     (as-> (ccr.api.nodetype/declared-child-node-definitions this) x
       (filter (fn [nd] (or (= (ccr.api.nodetype/child-item-name nd) childNodeName)
-                           (= (ccr.api.nodetype/child-item-name nd) "*"))) x)
+                          (= (ccr.api.nodetype/child-item-name nd) "*"))) x)
       (not (empty? x))))
   
   (can-add-child-node?
     [this childNodeName nodeTypeName])
+
+
+  (supertypes [this]
+     (as-> (calc-supertype-names db this) x
+       (map (fn [supertype-name] (nodetype db supertype-name)) x)))
 
   (node-type? [this nodeTypeName]
     (= nodeTypeName node-type-name))
@@ -154,18 +186,8 @@
       (map (fn [id] (->NodeDefinition db id)) x)))
   )
 
+
 (defn nodetype [db node-type-name]
   (->NodeType db node-type-name))
 
-(defn load-node-types
-  "Loads the builtin nodetypes to datomic connection"
-  [connection tx-data]
-  (d/transact connection tx-data))
-
-(defn load-builtin-node-types
-  "Loads the builtin nodetypes to datomic connection"
-  [connection]
-  (load-node-types connection  
-                   (as-> (cnd/builtin-nodetypes) x
-                         (cnd/node-to-tx x))))
 

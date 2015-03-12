@@ -62,8 +62,15 @@
       (is (= "JCR:CONTENT"
              (ntapi/primary-item-name (nt/nodetype db "nt:file")))))
     
-    (testing " can add child node"
+    (testing "Can add child node?"
       (is (= true
              (ntapi/can-add-child-node? (nt/nodetype db "nt:file") "jcr:content"))))
+
+    (testing "Read all supertypes"
+      (is (= #{"nt:hierarchyNode" "nt:base"}
+             (->> (nt/nodetype db "nt:file")
+                  (ntapi/supertypes)
+                  (map ntapi/node-type-name)
+                  (set)))))
     ))
 
