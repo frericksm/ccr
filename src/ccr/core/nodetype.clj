@@ -19,7 +19,7 @@
                          (cnd/node-to-tx x))))
 
 (defn merge-queries
-  "Merges datomic queries (which are in map form)"
+  "Merges datomic queries. The queries are exptected to be in map form"
   [& queries]
   (apply merge-with into queries))
 
@@ -27,7 +27,9 @@
 ;; https://www.youtube.com/watch?v=YHctJMUG8bI 
 ;; Queries as data
 
-(defn property-value-query [?e ?property-name ?value]
+(defn property-value-query 
+  ""
+  [?e ?property-name ?value]
   (let [?p  (gensym "?p")
         ?a  (gensym "?a")
         ?vs (gensym "?vs")]
