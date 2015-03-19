@@ -66,9 +66,14 @@
       (is (= true
              (ntapi/can-add-child-node? (nt/nodetype db "nt:file") "jcr:content"))))
 
-    (testing "Read all supertypes"
-      (is (= #{"nt:hierarchyNode" "nt:base"}
+    (testing "Read supertypes"
+      (is (= #{"nt:hierarchyNode" "nt:base" "mix:created"}
              (->> (nt/nodetype db "nt:file")
+                  (ntapi/supertypes)
+                  (map ntapi/node-type-name)
+                  (set))))
+      (is (= #{"mix:referenceable"}
+             (->> (nt/nodetype db "mix:shareable")
                   (ntapi/supertypes)
                   (map ntapi/node-type-name)
                   (set)))))

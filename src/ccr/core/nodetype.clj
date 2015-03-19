@@ -28,7 +28,7 @@
 ;; Queries as data
 
 (defn property-value-query 
-  ""
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e with its :jcr.property entity named ?property-name and the value of :jcr.value entity of that property."
   [?e ?property-name ?value]
   (let [?p  (gensym "?p")
         ?a  (gensym "?a")
@@ -39,11 +39,15 @@
              [?p :jcr.property/values ?vs]
              [?vs ?a ?value]]}))
 
-(defn child-node-query [?e ?c ?name]
+(defn child-node-query 
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its childnode entities ?c and the childnodes name ?name"
+  [?e ?c ?name]
   {:where [[?e :jcr.node/children ?c]
            [?c :jcr.node/name ?name]]})
 
-(defn node-type-query [?e ?v]
+(defn node-type-query 
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its property entity value ?v"
+  [?e ?v]
   (merge-queries
    (property-value-query ?e "jcr:primaryType" "nt:nodeType")
    (property-value-query ?e "jcr:nodeTypeName" ?v)))
@@ -74,10 +78,11 @@
                  (map (fn [nt] 
                         (ccr.api.nodetype/declared-supertype-names nt)) x)
                  (apply concat x)
-                 (set x))]
-      (if (= (count dst1) (count  dst2))
+                 (set x))
+          dst3 (clojure.set/union dst1 dst2)]
+      (if (= (count dst1) (count dst3))
         dst1
-        (recur dst2)))))
+        (recur dst3)))))
 
 
 (defn first-property-value [db id property-name]
@@ -121,8 +126,10 @@
 
 
   (supertypes [this]
-     (as-> (calc-supertype-names db this) x
-       (map (fn [supertype-name] (nodetype db supertype-name)) x)))
+    (let [mix      (ccr.api.nodetype/mixin? this)]
+      (as-> (calc-supertype-names db this) x
+        (map (fn [supertype-name] (nodetype db supertype-name)) x)
+        (if mix x (cons (nodetype db "nt:base") x)))))
 
   (node-type? [this nodeTypeName]
     (= nodeTypeName node-type-name))
