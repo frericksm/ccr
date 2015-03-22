@@ -64,11 +64,14 @@
     
     (testing "Can add child node?"
       (is (= true
-             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") "jcr:content")))
+             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
+                                        "jcr:content")))
       (is (= true
-             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") "jcr:content" "nt:base")))
+             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
+                                        "jcr:content" "nt:base")))
       (is (= false
-             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") "jcr:content" "nt:base1"))))
+             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
+                                        "jcr:content" "nt:base1"))))
 
     (testing "Testing supertypes"
       (is (= true (ntapi/node-type? (->> (nt/nodetype db "nt:file"))

@@ -109,8 +109,6 @@
 
   ccr.api.nodetype/NodeDefinition
 
-  
-  
   (allows-same-name-siblings? [this]
     (first-property-value db id "jcr:sameNameSiblings"))
 
@@ -190,14 +188,27 @@
   
   (can-add-child-node?
     [this childNodeName nodeTypeName]
-    (as-> (ccr.api.nodetype/declared-child-node-definitions this) x
-      (filter (fn [nd] (and (contains? 
-                             (ccr.api.nodetype/required-primary-type-names nd) 
-                             nodeTypeName)
-                        (or (= (ccr.api.nodetype/child-item-name nd) childNodeName)
-                            (= (ccr.api.nodetype/child-item-name nd) "*")))) x)
-      (empty? x)
-      (not x)))
+    (let [supertypes-of-nodeTypeName 
+          (as-> nodeTypeName y
+            (nodetype db y)
+            (ccr.api.nodetype/supertypes y)
+            (map (fn [nt] (ccr.api.nodetype/node-type-name nt)) y)
+            (cons nodeTypeName y)
+            (set y))]
+      (as-> (ccr.api.nodetype/declared-child-node-definitions this) x
+        (filter (fn [nd] (as-> nd z
+                           (clojure.set/intersection 
+                            (ccr.api.nodetype/required-primary-type-names z)
+                            supertypes-of-nodeTypeName)
+                          (empty? z)
+                          (not z))) x)
+        (filter (fn [nd] 
+                  (or (= (ccr.api.nodetype/child-item-name nd) 
+                         childNodeName)
+                      (= (ccr.api.nodetype/child-item-name nd) 
+                         "*"))) x)
+        (empty? x)
+        (not x))))
 
   (supertypes [this]
     (let [mix      (ccr.api.nodetype/mixin? this)]
@@ -206,7 +217,6 @@
         (if mix x (cons (nodetype db "nt:base") x)))))
 
   (node-type? [this nodeTypeName]
-
     (as-> (ccr.api.nodetype/supertypes this) x
           (cons this x)
           (map (fn [nt] (ccr.api.nodetype/node-type-name nt)) x)
