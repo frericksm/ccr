@@ -40,6 +40,11 @@
              [?vs ?a ?value]]}))
 
 (defn child-node-query 
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its childnode entities ?c"
+  [?e ?c ?name]
+  {:where [[?e :jcr.node/children ?c]]})
+
+(defn child-node-name-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its childnode entities ?c and the childnodes name ?name"
   [?e ?c ?name]
   {:where [[?e :jcr.node/children ?c]
@@ -68,8 +73,13 @@
   (let [?c (gensym "?c")
         ?e (gensym "?e")]
     (merge-queries {:find [?c]}
-                   (child-node-query ?e ?c childname)
+                   (child-node-name-query ?e ?c childname)
                    (node-type-query ?e nodetype-name))))
+
+(defn parent-query [child-entity-id]
+  (let [?e (gensym "?e")]
+    (merge-queries {:find [?e]}
+                   (child-node-query ?e child-entity-id))))
 
 (defn calc-supertype-names [db node-type]
   (loop [dst1 (set (ccr.api.nodetype/declared-supertype-names node-type))]
@@ -85,31 +95,88 @@
         (recur dst3)))))
 
 
-(defn first-property-value [db id property-name]
+(defn all-property-values [db id property-name]
   (as-> id x
     (property-query x property-name)
     (d/q x db) 
-    (map first x)
+    (map first x)))
+
+(defn first-property-value [db id property-name]
+  (as-> (all-property-values db id property-name) x
     (first x)))
 
 (defrecord NodeDefinition [db id]
 
   ccr.api.nodetype/NodeDefinition
 
+  
+  
+  (allows-same-name-siblings? [this]
+    (first-property-value db id "jcr:sameNameSiblings"))
+
+  (default-primary-type [this]
+    (first-property-value db id "jcr:defaultPrimaryType"))
+
+  (required-primary-type-names [this]
+    (as-> "jcr:requiredPrimaryTypes" x
+      (all-property-values db id x)
+      (set x)))
+
+  (required-primary-types [this]
+    (as-> (ccr.api.nodetype/required-primary-type-names this) x
+      (map (fn [name] (nodetype db name)) x)
+      (set x)))
+
   ccr.api.nodetype/ItemDefinition
+
+  (declaring-node-type [this]
+    (as-> (parent-query id) x
+      (d/q x db) 
+      (map first x)
+      (first x)
+      (nodetype db x)))
+
   (child-item-name [this] 
     (first-property-value db id "jcr:name"))
-  )
 
+  (on-parent-version [this]
+    (first-property-value db id "jcr:onParentVersion"))
+  
+  (auto-created? [this]
+    (first-property-value db id "jcr:autoCreated"))
 
+  (mandatory? [this]
+    (first-property-value db id "jcr:mandatory"))
+
+  (protected? [this]
+    (first-property-value db id "jcr:protected")))
 
 (defrecord PropertyDefinition [db id]
 
   ccr.api.nodetype/PropertyDefinition
 
   ccr.api.nodetype/ItemDefinition
+  (declaring-node-type [this]
+    (as-> (parent-query id) x
+      (d/q x db) 
+      (map first x)
+      (first x)
+      (nodetype db x)))
+
   (child-item-name [this] 
-    (first-property-value db id "jcr:name")))
+    (first-property-value db id "jcr:name"))
+
+  (on-parent-version [this]
+    (first-property-value db id "jcr:onParentVersion"))
+  
+  (auto-created? [this]
+    (first-property-value db id "jcr:autoCreated"))
+
+  (mandatory? [this]
+    (first-property-value db id "jcr:mandatory"))
+
+  (protected? [this]
+    (first-property-value db id "jcr:protected")))
 
 (defrecord NodeType [db node-type-name]
   ccr.api.nodetype/NodeType
@@ -118,12 +185,19 @@
     [this childNodeName]
     (as-> (ccr.api.nodetype/declared-child-node-definitions this) x
       (filter (fn [nd] (or (= (ccr.api.nodetype/child-item-name nd) childNodeName)
-                          (= (ccr.api.nodetype/child-item-name nd) "*"))) x)
+                           (= (ccr.api.nodetype/child-item-name nd) "*"))) x)
       (not (empty? x))))
   
   (can-add-child-node?
-    [this childNodeName nodeTypeName])
-
+    [this childNodeName nodeTypeName]
+    (as-> (ccr.api.nodetype/declared-child-node-definitions this) x
+      (filter (fn [nd] (and (contains? 
+                             (ccr.api.nodetype/required-primary-type-names nd) 
+                             nodeTypeName)
+                        (or (= (ccr.api.nodetype/child-item-name nd) childNodeName)
+                            (= (ccr.api.nodetype/child-item-name nd) "*")))) x)
+      (empty? x)
+      (not x)))
 
   (supertypes [this]
     (let [mix      (ccr.api.nodetype/mixin? this)]
@@ -132,16 +206,17 @@
         (if mix x (cons (nodetype db "nt:base") x)))))
 
   (node-type? [this nodeTypeName]
-    (= nodeTypeName node-type-name))
+
+    (as-> (ccr.api.nodetype/supertypes this) x
+          (cons this x)
+          (map (fn [nt] (ccr.api.nodetype/node-type-name nt)) x)
+          (set x)
+          (contains? x nodeTypeName)))
   
   ccr.api.nodetype/NodeTypeDefinition
 
   (node-type-name [this]
-    (as-> node-type-name x
-      (nodetype-property-query x "jcr:nodeTypeName")
-      (d/q x db) 
-      (map first x)
-      (first x)))
+    node-type-name)
   
   (declared-supertype-names [this]
     (as-> node-type-name x
