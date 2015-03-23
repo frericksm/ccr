@@ -94,6 +94,17 @@
         dst1
         (recur dst3)))))
 
+(defn exists-query [nodetype-name]
+  (let [?e  (gensym "?e")]  
+    (merge-queries {:find [?e]}
+                   (node-type-query ?e nodetype-name))))
+
+(defn exists? [db nodetype-name]
+  (as-> nodetype-name x
+    (exists-query x)
+    (d/q x db) 
+    (empty? x)
+    (not x)))
 
 (defn all-property-values [db id property-name]
   (as-> id x
@@ -188,8 +199,8 @@
   
   (can-add-child-node?
     [this childNodeName nodeTypeName]
-    (let [supertypes-of-nodeTypeName 
-          (as-> nodeTypeName y
+    (let [supertypes-of-nodeTypeName
+          (as->  nodeTypeName y
             (nodetype db y)
             (ccr.api.nodetype/supertypes y)
             (map (fn [nt] (ccr.api.nodetype/node-type-name nt)) y)
@@ -200,8 +211,8 @@
                            (clojure.set/intersection 
                             (ccr.api.nodetype/required-primary-type-names z)
                             supertypes-of-nodeTypeName)
-                          (empty? z)
-                          (not z))) x)
+                           (empty? z)
+                           (not z))) x)
         (filter (fn [nd] 
                   (or (= (ccr.api.nodetype/child-item-name nd) 
                          childNodeName)
@@ -281,7 +292,10 @@
   )
 
 
-(defn nodetype [db node-type-name]
-  (->NodeType db node-type-name))
+(defn nodetype [db nodetype-name]
+  (if (not (exists? db nodetype-name))
+    (throw (IllegalArgumentException. 
+            (format "Nodetype %s does not" nodetype-name)))
+    (->NodeType db nodetype-name)))
 
 

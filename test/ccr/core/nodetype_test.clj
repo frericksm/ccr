@@ -69,7 +69,7 @@
       (is (= true
              (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
                                         "jcr:content" "nt:base")))
-      (is (= false
+      (is (thrown? java.lang.IllegalArgumentException
              (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
                                         "jcr:content" "nt:base1"))))
 
