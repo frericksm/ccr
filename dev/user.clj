@@ -61,6 +61,6 @@
   (stop)
   (refresh :after 'user/go))
 
-;(init)
+(init)
 
 

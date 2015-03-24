@@ -41,7 +41,7 @@
 
 (defn child-node-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its childnode entities ?c"
-  [?e ?c ?name]
+  [?e ?c]
   {:where [[?e :jcr.node/children ?c]]})
 
 (defn child-node-name-query 
@@ -56,6 +56,16 @@
   (merge-queries
    (property-value-query ?e "jcr:primaryType" "nt:nodeType")
    (property-value-query ?e "jcr:nodeTypeName" ?v)))
+
+(defn declaring-node-type-name-query 
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its property entity value ?v"
+  [child-entity-id]
+  (let [?e (gensym "?e")
+        ?v (gensym "?v")]
+    (merge-queries {:find [?v]}
+                   (child-node-query ?e child-entity-id)
+                   (property-value-query ?e "jcr:primaryType" "nt:nodeType")
+                   (property-value-query ?e "jcr:nodeTypeName" ?v))))
 
 (defn property-query [?e property-name]
   (let [?pv (gensym "?pv")]
@@ -116,6 +126,14 @@
   (as-> (all-property-values db id property-name) x
     (first x)))
 
+
+(defn declaring-node-type-by-item-id [db id]
+  (as-> (declaring-node-type-name-query id) x
+    (d/q x db) 
+    (map first x)
+    (first x)
+    (nodetype db x)))
+
 (defrecord NodeDefinition [db id]
 
   ccr.api.nodetype/NodeDefinition
@@ -139,11 +157,7 @@
   ccr.api.nodetype/ItemDefinition
 
   (declaring-node-type [this]
-    (as-> (parent-query id) x
-      (d/q x db) 
-      (map first x)
-      (first x)
-      (nodetype db x)))
+    (declaring-node-type-by-item-id db id))
 
   (child-item-name [this] 
     (first-property-value db id "jcr:name"))
@@ -166,11 +180,7 @@
 
   ccr.api.nodetype/ItemDefinition
   (declaring-node-type [this]
-    (as-> (parent-query id) x
-      (d/q x db) 
-      (map first x)
-      (first x)
-      (nodetype db x)))
+    (declaring-node-type-by-item-id db id))
 
   (child-item-name [this] 
     (first-property-value db id "jcr:name"))
@@ -295,7 +305,7 @@
 (defn nodetype [db nodetype-name]
   (if (not (exists? db nodetype-name))
     (throw (IllegalArgumentException. 
-            (format "Nodetype %s does not" nodetype-name)))
+            (format "Nodetype %s does not exist" nodetype-name)))
     (->NodeType db nodetype-name)))
 
 
