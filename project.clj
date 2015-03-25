@@ -17,9 +17,9 @@
                                    :exclusions [joda-time]]]
                    :source-paths ["dev"]}
              :db2 {:dependencies
-                   [[com.ibm.db2/db2jcc "1.0" ]
-                    [com.ibm.db2/db2jcc_license_cu "1.0" ]
-                    [com.ibm.db2/db2jcc_license_cisuz "1.0" ]
+                   [[com.ibm.db2/db2jcc "1.0"]
+                    [com.ibm.db2/db2jcc_license_cu "1.0"]
+                    [com.ibm.db2/db2jcc_license_cisuz "1.0"]
                     [com.datomic/datomic-pro "0.9.5130"
                      :exclusions [joda-time]]]}
              }
