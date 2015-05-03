@@ -96,3 +96,11 @@
                   (set)))))
     ))
 
+(deftest test-effective-nodetype
+  (testing "without conn"
+    (is (thrown? java.lang.NullPointerException (nt/load-builtin-node-types nil))))
+  (testing "with conn"
+    (let [conn (d/connect db-uri)
+          tx-data (nt/load-builtin-node-types conn)]
+      (is (not (nil? tx-data))))))
+
