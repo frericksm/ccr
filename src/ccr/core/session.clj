@@ -18,7 +18,7 @@
   ccr.api.session/Session
   (root-node [this]
     (let [db (current-db this)
-          weid  (get ws :workspace-entitiy-id)
+          weid  (get ws :workspace-entity-id)
           eid   (->> (d/q '[:find ?r
                             :in $ ?weid
                             :where

@@ -4,6 +4,7 @@
   (:require
    [ccr.api.repository :as r]
    [ccr.api.session :as s]
+   [ccr.api.node :as n]
    [ccr.core.cnd :as cnd]
    [ccr.core.import :as import]
    [ccr.core.nodetype :as nt]

@@ -19,6 +19,9 @@
     (let [r (repository/repository {"ccr.datomic.uri" "datomic:mem://jcr"})
           s (rapi/login r)
           rn (sapi/root-node s)]
-      ;(testing "add node" (is (not (nil? (napi/add-node rn "A")))))
+      
       (testing "aquiring workspacee"
-        (is (not (nil? (sapi/workspace s))))))))
+        (is (not (nil? (sapi/workspace s)))))
+
+      (testing "add node" (is (not (nil? (napi/add-node rn "A")))))
+      )))
