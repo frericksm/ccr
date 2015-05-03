@@ -92,17 +92,16 @@
                    (child-node-query ?e child-entity-id))))
 
 (defn calc-supertype-names [db node-type]
-  (loop [dst1 (set (ccr.api.nodetype/declared-supertype-names node-type))]
+  (loop [dst1 (ccr.api.nodetype/declared-supertype-names node-type)]
     (let [dst2 (as-> dst1 x
-                 (map (fn [supertyname] (nodetype db supertyname)) x)
+                 (map (fn [supertype-name] (nodetype db supertype-name)) x)
                  (map (fn [nt] 
                         (ccr.api.nodetype/declared-supertype-names nt)) x)
                  (apply concat x)
-                 (set x))
-          dst3 (clojure.set/union dst1 dst2)]
-      (if (= (count dst1) (count dst3))
+                 (set x))]
+      (if (= (set dst1) (clojure.set/union (set dst1) dst2))
         dst1
-        (recur dst3)))))
+        (recur (concat dst1 dst2))))))
 
 (defn exists-query [nodetype-name]
   (let [?e  (gensym "?e")]  
@@ -125,7 +124,6 @@
 (defn first-property-value [db id property-name]
   (as-> (all-property-values db id property-name) x
     (first x)))
-
 
 (defn declaring-node-type-by-item-id [db id]
   (as-> (declaring-node-type-name-query id) x
@@ -231,8 +229,30 @@
         (empty? x)
         (not x))))
 
+  (can-remove-node? [this nodeName]
+    )
+
+  (can-remove-property? [this propertyName]
+    )
+
+  (can-set-property? [this propertyName & values]
+    )
+
+  (child-node-definitions [this]
+    (let [supertypes-of-nodeTypeName
+          (as-> (ccr.api.nodetype/supertypes this) y
+            (map (fn [nt] (ccr.api.nodetype/node-type-name nt)) y)
+            (cons node-type-name y)
+            (reverse y))]
+
+      (let [st supertypes-of-nodeTypeName
+            effective-node-type nil]
+             ;; 3.7.6.6 Semantics of Subtyping
+             ))
+    )
+  
   (supertypes [this]
-    (let [mix      (ccr.api.nodetype/mixin? this)]
+    (let [mix (ccr.api.nodetype/mixin? this)]
       (as-> (calc-supertype-names db this) x
         (map (fn [supertype-name] (nodetype db supertype-name)) x)
         (if mix x (cons (nodetype db "nt:base") x)))))
@@ -300,7 +320,6 @@
       (map first x)
       (map (fn [id] (->NodeDefinition db id)) x)))
   )
-
 
 (defn nodetype [db nodetype-name]
   (if (not (exists? db nodetype-name))
