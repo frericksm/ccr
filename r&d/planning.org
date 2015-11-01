@@ -1,0 +1,46 @@
+* Nodetypes
+
+** Calculate effective nodetype
+
+
+ 
+
+
+
+* Database function for atomic mutation
+
+** Add node
+
+*** Calculate effective node type
+*** Calculate implicit items (autocreated properties and child nodes)
+*** Validate given 
+
+** Update node
+
+** Delete node
+
+
+* Session
+
+Goals
+
+ * Keep track of all microchanges 
+ * Transform all microchanges into one big transaction
+ * Save changes in one big transaction by a database function
+
+The responsibility of the session is to keep track of any changes in the scope
+of the session.
+
+Therefor the session has to record all changes.
+
+When creating a session the current value of the datomic database is read and stored 
+and given the name d(0).
+
+Starting with n = 0 any changes applied to the session are applied to the current 
+database d(n) yielding an new database d(n+1) using datomic's function 'with'.
+
+When it comes to save the session to the repository the changes from d(0) to d(n_max)
+has be transformed into a single transaction and persisted by datomic.
+
+
+

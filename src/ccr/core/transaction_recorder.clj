@@ -18,7 +18,7 @@
  command-history is a vector of maps. Each map has values to the keys
   :transact-result (like the return value of the transact function),
   :as-if-transction (transaction using entity-ids form previous as-if-db) and
-  :tempid-transction (transaction where all as-if-entity-ids are replaced by the initial temp-id if available). "
+  :tempid-transaction (transaction where all as-if-entity-ids are replaced by the initial temp-id if available). "
   [conn transaction-recorder-atom session-transaction]
   (swap! transaction-recorder-atom
          (fn [current-value
