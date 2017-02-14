@@ -10,18 +10,24 @@
 
 
 (set-env!
- :source-paths #{"src"}
+ :source-paths #{"src" "test"}
  :resource-paths #{"resources"}
- :dependencies '[[org.clojure/clojure "1.7.0-alpha4"]
+ :dependencies '[[org.clojure/clojure "1.9.0-alpha14"]
                  [org.clojure/data.zip "0.1.1"]
                  [org.clojure/data.xml "0.0.8"]
-                 [instaparse "1.3.5"]
+                 [org.clojure/tools.logging "0.3.1"]
+                 [instaparse "1.4.5"]
                  [enlive "1.1.5"]
                  [javax.jcr/jcr "2.0"]
                  [org.clojure/data.codec "0.1.0"]
-                 ;;[com.datomic/datomic-free "0.9.5078" :exclusions [joda-time]]
+                 [com.datomic/datomic-free "0.9.5407"]
+            
+;;[com.datomic/datomic-free "0.9.5078" :exclusions [joda-time]]
+
+                 [adzerk/boot-test "1.2.0" :scope "test"]
                  ])
 
+(require '[adzerk.boot-test :refer :all])
 
 (task-options! repl
                {:server true
