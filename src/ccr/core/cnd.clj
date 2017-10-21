@@ -5,15 +5,19 @@
             [instaparse.core :as insta]
             [net.cgrand.enlive-html :as html]))
 
-(defn exists?
+(def cnd-parser
+  "A function with one parameter of type String. Assumes that the string is in cnd format. Parses the string and returns the syntax tree in :enlive format"
+    (insta/parser (slurp (io/resource "cnd.ebnf")) :output-format :enlive))
+
+(defn ^:private exists?
   "Returns true, if the selector applied to the node returns an empty list"
   [node selector]
   (not (empty? (html/select node  selector))))
 
-(defn remove-nil-vals
-  "Returns a property entity map where the seq to key :jcr.property/values is
-  a) cleaned from empty values and
-  b) each element in that seq expanded by a value to the key :jcr.value/position"
+(defn ^:private remove-nil-vals
+  "Returns a property entity map where the seq to key :jcr.property/values 
+  a) is cleaned from empty values and
+  b) to each element in that seq a value for the key :jcr.value/position is added"
   [m]
   (update-in m [:jcr.property/values]
              (fn [val-seq]
@@ -23,7 +27,7 @@
                                     (assoc v :jcr.value/position i)) x)
                      (into [] x)))))
 
-(defn childnode-definition-properties
+(defn ^:private childnode-definition-properties
   "Returns a datomic transaction for a childnode definition. The parameter 'node' "
   [node]
   (let [node_name      (first (html/select node [:node_name html/text-node])) 
@@ -71,7 +75,7 @@
            (map remove-nil-vals x)
            (into [] x))))
 
-(defn childnode-definition
+(defn ^:private childnode-definition
   ""
   [node]
   {:jcr.node/name "jcr:childNodeDefinition"
@@ -92,7 +96,7 @@
    :type_reference      "Reference"
    :type_undefined      "Undefined"})
 
-(defn property-definition-properties  [node]
+(defn ^:private property-definition-properties  [node]
   (let [property_name (first (html/select node [:property_name html/text-node]))
         prop_type     (->> (html/select node [:property_type html/first-child])
                            (map :tag)
@@ -245,14 +249,10 @@
         (second x)
         ))
 
-(def cnd-parser
-  "A function with one parameter of type String. Assumes that the string is in cnd format. Parses the string and returns the syntax tree in :enlive format"
-    (insta/parser (slurp (io/resource "cnd.ebnf")) :output-format :enlive))
-
-(defn parse-cnd-resource 
+(defn ^:private parse-cnd-resource 
   "Returns the syntax tree of the parsed cnd file"
-  [resource_on_claspath]
-  (as-> resource_on_claspath x
+  [resource_on_classpath]
+  (as-> resource_on_classpath x
         (io/resource x)
         (slurp x)
         (cnd-parser x)))

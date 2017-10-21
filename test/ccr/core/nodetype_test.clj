@@ -55,8 +55,8 @@
              (ntapi/mixin? (nt/nodetype db "mix:lifecycle")))))
 
     (testing "Read jcr:hasOderableChildNodes"
-      (is (= true
-             (ntapi/mixin? (nt/nodetype db "mix:referenceable")))))
+      (is (= false
+             (ntapi/orderable-child-nodes? (nt/nodetype db "mix:referenceable")))))
 
     (testing "Read jcr:primaryItemName"
       (is (= "JCR:CONTENT"

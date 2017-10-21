@@ -12,15 +12,16 @@
 (set-env!
  :source-paths #{"src" "test"}
  :resource-paths #{"resources"}
- :dependencies '[[org.clojure/clojure "1.9.0-alpha14"]
-                 [org.clojure/data.zip "0.1.1"]
+ :dependencies '[[org.clojure/clojure "1.9.0-beta2"]
+                 [org.clojure/data.zip "0.1.2"]
                  [org.clojure/data.xml "0.0.8"]
-                 [org.clojure/tools.logging "0.3.1"]
-                 [instaparse "1.4.5"]
-                 [enlive "1.1.5"]
+                 [org.clojure/tools.logging "0.4.0"]
+                 [instaparse "1.4.8"]
+                 [enlive "1.1.6"]
                  [javax.jcr/jcr "2.0"]
                  [org.clojure/data.codec "0.1.0"]
-                 [com.datomic/datomic-free "0.9.5407"]
+                 [com.datomic/datomic-free "0.9.5561.62"]
+                 [org.clojure/spec.alpha "0.1.134"]
             
 ;;[com.datomic/datomic-free "0.9.5078" :exclusions [joda-time]]
 

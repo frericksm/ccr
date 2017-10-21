@@ -6,17 +6,12 @@
 
 (declare nodetype)
 
-(defn load-node-types
-  "Loads the builtin nodetypes to datomic connection"
-  [connection tx-data]
-  (d/transact connection tx-data))
-
 (defn load-builtin-node-types
   "Loads the builtin nodetypes to datomic connection"
   [connection]
-  (load-node-types connection  
-                   (as-> (cnd/builtin-nodetypes) x
-                         (cnd/node-to-tx x))))
+  (as-> (cnd/builtin-nodetypes) x
+    (cnd/node-to-tx x)
+    (d/transact connection x)))
 
 (defn merge-queries
   "Merges datomic queries. The queries are exptected to be in map form"
