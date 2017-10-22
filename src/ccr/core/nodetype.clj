@@ -1,6 +1,7 @@
 (ns ccr.core.nodetype
   (:require [ccr.api.nodetype]
             [ccr.core.cnd :as cnd]
+            [ccr.core.transaction-recorder :as tr]
             [datomic.api :as d  :only [q db]]
             ))
 
@@ -331,9 +332,10 @@
     (->NodeType db nodetype-name)))
 
 
-(defrecord NodeTypeManager [db]
+(defrecord NodeTypeManager [session]
   ccr.api.nodetype/NodeTypeManager
-
+  
   (node-type [this nodeTypeName]
-    (nodetype db nodeTypeName))
-)
+    (let [db (tr/current-db this)]    
+      (nodetype db nodeTypeName))
+    ))

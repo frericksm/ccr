@@ -7,7 +7,7 @@
 (defrecord Workspace [session workspace-name workspace-entity-id]
   ccr.api.workspace/Workspace
   (node-type-manager [this]
-    (nt/->NodeTypeManager (tr/calc-current-db session))))
+    (nt/->NodeTypeManager session)))
 
 (defn create-workspace [conn workspace-name]
   (as-> conn x
@@ -29,14 +29,15 @@
         (:db-after x)))
 
 (defn workspace [session workspace-name]
-  (as-> (d/q '[:find ?e 
-               :in $ ?name
-               :where 
-               [?e :jcr.workspace/name ?name]
-               ]                   
-             (tr/calc-current-db session) 
-             workspace-name)
+  (let [db (tr/current-db session)]    
+    (as-> (d/q '[:find ?e 
+                 :in $ ?name
+                 :where 
+                 [?e :jcr.workspace/name ?name]
+                 ]                   
+               db
+               workspace-name)
         x
-        (ffirst x)
-        (->Workspace session workspace-name x)
-        ))
+      (ffirst x)
+      (->Workspace session workspace-name x)
+      )))

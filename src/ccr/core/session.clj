@@ -6,12 +6,12 @@
             [datomic.api :as d  :only [q db]]
             ))
 
-(deftype Session 
+(defrecord Session 
   [repository workspace-name conn transaction-recorder-atom]
   
   ccr.api.session/Session
   (root-node [this]
-    (let [db (tr/calc-current-db conn (deref transaction-recorder-atom))
+    (let [db (tr/current-db this)
           weid  (get (w/workspace this workspace-name) :workspace-entity-id)
           eid   (->> (d/q '[:find ?r
                             :in $ ?weid
@@ -24,15 +24,7 @@
                      ffirst)]
       (ccr.core.node/node this eid)))
   
-  (workspace [this] (w/workspace this workspace-name))
-  
-  tr/TransactionRecorder
-  (current-db [this]
-    (tr/calc-current-db conn (deref transaction-recorder-atom)))
-
-  (record-tx [this tx]
-    (tr/apply-transaction conn transaction-recorder-atom tx))
-  )
+  (workspace [this] (w/workspace this workspace-name)))
 
 
 

@@ -1,21 +1,16 @@
 (ns ccr.core.transaction-recorder
-  (:require [datomic.api :as api]))
+  (:require [datomic.api :as api]
+            [clojure.spec.alpha :as s]))
 
-(defprotocol TransactionRecorder
- (current-db [this]
-   "Returns the current value of db to execute queries")
- (record-tx [this tx]
-   "Records the transaction tx to the recorder")
-)
+(s/def ::tx-result (s/keys :req [::db-after ::db-before]))
+(s/def ::recording (s/coll-of ::tx-result))
 
-(defn calc-current-db
+(defn ^:private calc-current-db
   "Returns a datomic db. If recording is not empty then the :db-after value of the last entry in recording is returned. Otherwise a fresh (datomic.api/db connection) is returned"
-  ([connection recording]
-   (if-let [last-db (->> recording first :tx-result :db-after)]
-     last-db
-     (api/db connection)))
-  ([session]
-   (calc-current-db (:conn session) (deref (:transaction-recorder-atom session))))
+  [connection recording]
+  (if-let [last-db (->> recording first :tx-result :db-after)]
+    last-db
+    (api/db connection))
   )
 
 (defn to-datomic-transaction [session-transaction]
@@ -68,3 +63,16 @@
                (apply concat))
         ]
     (api/transact (:connection session) t )))
+
+
+(defn current-db 
+  "Returns the current value of db to execute queries"
+  [session]
+  (calc-current-db (:conn session) (deref (:transaction-recorder-atom session))))
+
+(defn record-tx
+  "Records the transaction tx to the recorder"
+  [session tx]
+  (apply-transaction (:conn session) (deref (:transaction-recorder-atom session)) tx))
+
+
