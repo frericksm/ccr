@@ -188,3 +188,9 @@ In implementations that support node type registration, if this PropertyDefiniti
   (required-primary-type-names [this]
     "Returns the names of the required primary node types. If this NodeDefinition is acquired from a live NodeType this list will reflect the node types returned by getRequiredPrimaryTypes, above. If this NodeDefinition is actually a NodeDefinitionTemplate that is not part of a registered node type, then this method will return the required primary types as set in that template. If that template is a newly-created empty one, then this method will return null.")
   )
+
+(defprotocol NodeTypeManager
+
+  (node-type [this nodeTypeName]
+    "Returns the named node type.")
+)

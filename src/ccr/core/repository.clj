@@ -13,24 +13,17 @@
 (defn create-schema [conn]
   @(d/transact conn schema-tx))
 
-(defrecord ImmutableRepository [uri conn]
+(defrecord Repository [uri conn]
   ccr.api.repository/Repository
   
   ;;"Erzeugt eine Session."
   (login [this credentials workspace-name]
-    (let [db   (d/db conn)
-          workspace (ccr.core.workspace/workspace db workspace-name)
-          transaction-recorder-atom (atom nil)]
-       (ccr.core.session.Session. this workspace conn transaction-recorder-atom)))
+    (let [transaction-recorder-atom (atom nil)]
+       (ccr.core.session.Session. this workspace-name conn transaction-recorder-atom)))
   
   (login [this]
     (ccr.api.repository/login this nil "default"))
-
-  ccr.api.repository/NodeTypeManager
-
-  (node-type [this node-type-name]
-
-    ))
+)
 
 (defn repository [parameters]
   (try
@@ -40,7 +33,7 @@
         (if created (do  (create-schema conn)
                          ;;(ccr.nodetype/load-builtin-node-types conn)
                          (ccr.core.workspace/create-workspace conn "default")))
-        (->ImmutableRepository uri conn)))
+        (->Repository uri conn)))
     (catch datomic.impl.Exceptions$IllegalArgumentExceptionInfo e
       (log/error e)
       (throw (java.lang.IllegalArgumentException. e ))

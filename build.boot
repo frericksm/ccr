@@ -84,3 +84,11 @@
    (wait)))
 
 
+(deftask do-tests
+  "Setup for development"
+  []
+  (comp 
+   (watch)
+   ;;(speak) 
+   (test)))
+ 

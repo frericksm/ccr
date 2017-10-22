@@ -94,6 +94,11 @@
                   (ntapi/supertypes)
                   (map ntapi/node-type-name)
                   (set)))))
+    (testing "Child node definitions"
+      (is (= false
+             (->> (nt/nodetype db "nt:file")
+                  (ntapi/child-node-definitions)
+                  (empty?)))))
     ))
 
 (deftest test-effective-nodetype

@@ -1,12 +1,22 @@
 (ns ccr.core.transaction-recorder
   (:require [datomic.api :as api]))
 
-(defn current-db
+(defprotocol TransactionRecorder
+ (current-db [this]
+   "Returns the current value of db to execute queries")
+ (record-tx [this tx]
+   "Records the transaction tx to the recorder")
+)
+
+(defn calc-current-db
   "Returns a datomic db. If recording is not empty then the :db-after value of the last entry in recording is returned. Otherwise a fresh (datomic.api/db connection) is returned"
-  [connection recording]
-  (if-let [last-db (->> recording first :tx-result :db-after)]
-    last-db
-    (api/db connection)))
+  ([connection recording]
+   (if-let [last-db (->> recording first :tx-result :db-after)]
+     last-db
+     (api/db connection)))
+  ([session]
+   (calc-current-db (:conn session) (deref (:transaction-recorder-atom session))))
+  )
 
 (defn to-datomic-transaction [session-transaction]
   (apply (:trans-fn session-transaction)
@@ -24,7 +34,7 @@
          (fn [current-value
               conn
               session-transaction]
-           (let [db (current-db conn current-value)
+           (let [db (calc-current-db conn current-value)
                  transaction (to-datomic-transaction session-transaction)
                  new-transact-result (api/with db transaction)]
              (cons {:tx-result new-transact-result

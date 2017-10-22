@@ -13,7 +13,7 @@
     (cnd/node-to-tx x)
     (d/transact connection x)))
 
-(defn merge-queries
+(defn ^:private merge-queries
   "Merges datomic queries. The queries are exptected to be in map form"
   [& queries]
   (apply merge-with into queries))
@@ -22,7 +22,7 @@
 ;; https://www.youtube.com/watch?v=YHctJMUG8bI 
 ;; Queries as data
 
-(defn property-value-query 
+(defn ^:private property-value-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e with its :jcr.property entity named ?property-name and the value of :jcr.value entity of that property."
   [?e ?property-name ?value]
   (let [?p  (gensym "?p")
@@ -34,25 +34,25 @@
              [?p :jcr.property/values ?vs]
              [?vs ?a ?value]]}))
 
-(defn child-node-query 
+(defn ^:private child-node-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its childnode entities ?c"
   [?e ?c]
   {:where [[?e :jcr.node/children ?c]]})
 
-(defn child-node-name-query 
+(defn ^:private child-node-name-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its childnode entities ?c and the childnodes name ?name"
   [?e ?c ?name]
   {:where [[?e :jcr.node/children ?c]
            [?c :jcr.node/name ?name]]})
 
-(defn node-type-query 
+(defn ^:private node-type-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its property entity value ?v"
   [?e ?v]
   (merge-queries
    (property-value-query ?e "jcr:primaryType" "nt:nodeType")
    (property-value-query ?e "jcr:nodeTypeName" ?v)))
 
-(defn declaring-node-type-name-query 
+(defn ^:private declaring-node-type-name-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its property entity value ?v"
   [child-entity-id]
   (let [?e (gensym "?e")
@@ -62,31 +62,31 @@
                    (property-value-query ?e "jcr:primaryType" "nt:nodeType")
                    (property-value-query ?e "jcr:nodeTypeName" ?v))))
 
-(defn property-query [?e property-name]
+(defn ^:private property-query [?e property-name]
   (let [?pv (gensym "?pv")]
     (merge-queries {:find [?pv]}
                    (property-value-query ?e property-name ?pv))))
 
-(defn nodetype-property-query [nodetype-name property-name]
+(defn ^:private nodetype-property-query [nodetype-name property-name]
   (let [?pv (gensym "?pv")
         ?e  (gensym "?e")]  
     (merge-queries {:find [?pv]}
                    (property-value-query ?e property-name ?pv)
                    (node-type-query ?e nodetype-name))))
 
-(defn nodetype-child-query [nodetype-name childname]
+(defn ^:private nodetype-child-query [nodetype-name childname]
   (let [?c (gensym "?c")
         ?e (gensym "?e")]
     (merge-queries {:find [?c]}
                    (child-node-name-query ?e ?c childname)
                    (node-type-query ?e nodetype-name))))
 
-(defn parent-query [child-entity-id]
+(defn ^:private parent-query [child-entity-id]
   (let [?e (gensym "?e")]
     (merge-queries {:find [?e]}
                    (child-node-query ?e child-entity-id))))
 
-(defn calc-supertype-names [db node-type]
+(defn ^:private calc-supertype-names [db node-type]
   (loop [dst1 (ccr.api.nodetype/declared-supertype-names node-type)]
     (let [dst2 (as-> dst1 x
                  (map (fn [supertype-name] (nodetype db supertype-name)) x)
@@ -98,29 +98,29 @@
         dst1
         (recur (concat dst1 dst2))))))
 
-(defn exists-query [nodetype-name]
+(defn ^:private exists-query [nodetype-name]
   (let [?e  (gensym "?e")]  
     (merge-queries {:find [?e]}
                    (node-type-query ?e nodetype-name))))
 
-(defn exists? [db nodetype-name]
+(defn ^:private exists? [db nodetype-name]
   (as-> nodetype-name x
     (exists-query x)
     (d/q x db) 
     (empty? x)
     (not x)))
 
-(defn all-property-values [db id property-name]
+(defn ^:private all-property-values [db id property-name]
   (as-> id x
     (property-query x property-name)
     (d/q x db) 
     (map first x)))
 
-(defn first-property-value [db id property-name]
+(defn ^:private first-property-value [db id property-name]
   (as-> (all-property-values db id property-name) x
     (first x)))
 
-(defn declaring-node-type-by-item-id [db id]
+(defn ^:private declaring-node-type-by-item-id [db id]
   (as-> (declaring-node-type-name-query id) x
     (d/q x db) 
     (map first x)
@@ -190,6 +190,13 @@
   (protected? [this]
     (first-property-value db id "jcr:protected")))
 
+(defn ^:private read-child-node-definitions [db node-type-name]
+      (as-> node-type-name x
+        (nodetype-child-query x "jcr:childNodeDefinition")
+        (d/q x db) 
+        (map first x)
+        (map (fn [id] (->NodeDefinition db id)) x)))
+
 (defrecord NodeType [db node-type-name]
   ccr.api.nodetype/NodeType
 
@@ -241,8 +248,12 @@
             (reverse y))]
 
       (let [st supertypes-of-nodeTypeName
+            all-child-node-definitions
+            (map (partial read-child-node-definitions db) st)
             effective-node-type nil]
+        
              ;; 3.7.6.6 Semantics of Subtyping
+        all-child-node-definitions
              ))
     )
   
@@ -309,11 +320,8 @@
       (map (fn [id] (->PropertyDefinition db id)) x)))
 
   (declared-child-node-definitions [this]
-    (as-> node-type-name x
-      (nodetype-child-query x "jcr:childNodeDefinition")
-      (d/q x db) 
-      (map first x)
-      (map (fn [id] (->NodeDefinition db id)) x)))
+    (read-child-node-definitions db node-type-name)
+    )
   )
 
 (defn nodetype [db nodetype-name]
@@ -323,3 +331,9 @@
     (->NodeType db nodetype-name)))
 
 
+(defrecord NodeTypeManager [db]
+  ccr.api.nodetype/NodeTypeManager
+
+  (node-type [this nodeTypeName]
+    (nodetype db nodeTypeName))
+)

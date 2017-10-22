@@ -1,11 +1,13 @@
 (ns ccr.core.workspace
   (:require [ccr.api.workspace]
-            [ccr.core.session :as s]
+            [ccr.core.transaction-recorder :as tr]
+            [ccr.core.nodetype :as nt]
             [datomic.api :as d  :only [q db]]))
 
-(defrecord ImmutableWorkspace [workspace-name workspace-entity-id]
+(defrecord Workspace [session workspace-name workspace-entity-id]
   ccr.api.workspace/Workspace
-  (node-type-manager [this]))
+  (node-type-manager [this]
+    (nt/->NodeTypeManager (tr/calc-current-db session))))
 
 (defn create-workspace [conn workspace-name]
   (as-> conn x
@@ -26,15 +28,15 @@
         (deref x)
         (:db-after x)))
 
-(defn workspace [db workspace-name]
+(defn workspace [session workspace-name]
   (as-> (d/q '[:find ?e 
                :in $ ?name
                :where 
                [?e :jcr.workspace/name ?name]
                ]                   
-             db
+             (tr/calc-current-db session) 
              workspace-name)
         x
         (ffirst x)
-        (->ImmutableWorkspace workspace-name x)
+        (->Workspace session workspace-name x)
         ))
