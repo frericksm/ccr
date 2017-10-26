@@ -5,6 +5,8 @@
             [datomic.api :as d  :only [q db]]
             ))
 
+(defn idp [m x] (println m x) x)
+
 (declare nodetype)
 
 (defn load-builtin-node-types
@@ -98,6 +100,27 @@
       (if (= (set dst1) (clojure.set/union (set dst1) dst2))
         dst1
         (recur (concat dst1 dst2))))))
+
+(defn ^:private calc-supertype-tree
+  "Liefert zum node-type-name eine Map, die die Supertypestruktur abbildet. E.g
+  {node-type-name [supertype1 supertype1]
+   supertype1 [supertype3]
+   supertype2 []
+   supertype3 []}"
+  [db node-type-name]
+  (loop [h {::root [node-type-name]}]
+    (let [not-visited (clojure.set/difference (set (flatten (vals h)))
+                                              (set (keys h)))]
+      (if (empty? not-visited)
+        (dissoc h ::root)
+        (let [new_h (reduce (fn [a v]
+                              (let [dsn (ccr.api.nodetype/declared-supertype-names
+                                          (nodetype db v))]
+                                (assoc a v dsn)))
+                            h
+                            not-visited
+                            )]
+          (recur new_h))))))
 
 (defn ^:private exists-query [nodetype-name]
   (let [?e  (gensym "?e")]  
@@ -203,34 +226,31 @@
 
   (can-add-child-node?
     [this childNodeName]
-    (as-> (ccr.api.nodetype/declared-child-node-definitions this) x
-      (filter (fn [nd] (or (= (ccr.api.nodetype/child-item-name nd) childNodeName)
-                           (= (ccr.api.nodetype/child-item-name nd) "*"))) x)
-      (not (empty? x))))
+    (let [nd (ccr.api.nodetype/child-node-definitions this)
+          name-match-cndefs (filter (fn [cd] 
+                                      (= childNodeName
+                                         (ccr.api.nodetype/child-item-name cd))) nd)
+          residuals (filter (fn [cd] 
+                              (= "*"
+                                 (ccr.api.nodetype/child-item-name cd))) nd)]
+      (or (= 1 (count name-match-cndefs))
+          (and (= 0 (count name-match-cndefs))
+               (= 1 (count residuals))))))
   
   (can-add-child-node?
     [this childNodeName nodeTypeName]
-    (let [supertypes-of-nodeTypeName
-          (as->  nodeTypeName y
-            (nodetype db y)
-            (ccr.api.nodetype/supertypes y)
-            (map (fn [nt] (ccr.api.nodetype/node-type-name nt)) y)
-            (cons nodeTypeName y)
-            (set y))]
-      (as-> (ccr.api.nodetype/declared-child-node-definitions this) x
-        (filter (fn [nd] (as-> nd z
-                           (clojure.set/intersection 
-                            (ccr.api.nodetype/required-primary-type-names z)
-                            supertypes-of-nodeTypeName)
-                           (empty? z)
-                           (not z))) x)
-        (filter (fn [nd] 
-                  (or (= (ccr.api.nodetype/child-item-name nd) 
-                         childNodeName)
-                      (= (ccr.api.nodetype/child-item-name nd) 
-                         "*"))) x)
-        (empty? x)
-        (not x))))
+    (let [nd (ccr.api.nodetype/child-node-definitions this)
+          name-match-cndefs (filter (fn [cd] 
+                                      (and (= childNodeName
+                                              (ccr.api.nodetype/child-item-name cd))
+                                           (contains? (ccr.api.nodetype/required-primary-type-names cd) nodeTypeName))) nd)
+          residuals (filter (fn [cd] 
+                              (and (= "*"
+                                       (ccr.api.nodetype/child-item-name cd))
+                                   (contains? (ccr.api.nodetype/required-primary-type-names cd) nodeTypeName))) nd)]
+      (or (= 1 (count name-match-cndefs))
+          (and (= 0 (count name-match-cndefs))
+               (= 1 (count residuals))))))
 
   (can-remove-node? [this nodeName]
     )
@@ -242,21 +262,37 @@
     )
 
   (child-node-definitions [this]
-    (let [supertypes-of-nodeTypeName
-          (as-> (ccr.api.nodetype/supertypes this) y
-            (map (fn [nt] (ccr.api.nodetype/node-type-name nt)) y)
-            (cons node-type-name y)
-            (reverse y))]
+    ;; (see https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.7.6.8 Item Definitions in Subtypes)
+    (let [st-tree (idp "tree" (calc-supertype-tree db node-type-name))
+          cndefs (idp "tree2" (as-> st-tree x
+                                (keys x)
+                                (map (fn [nt-name] (vector nt-name
+                                                           (read-child-node-definitions db nt-name))) x)
+                                (into {} x))) ;;child-node-defintiion je nodetype
+          ]
+      (loop [result []
+             next-to-merge [node-type-name]]
+        (if (empty? next-to-merge)
+          result
+          (let [merge-candidates (as-> next-to-merge x
+                                   (map (fn [n] (get cndefs n)) x)
+                                   (flatten x))
+                new_next-to-merge (as-> next-to-merge x
+                                   (map (fn [n] (get st-tree n)) x)
+                                   (flatten x)) 
 
-      (let [st supertypes-of-nodeTypeName
-            all-child-node-definitions
-            (map (partial read-child-node-definitions db) st)
-            effective-node-type nil]
-        
-             ;; 3.7.6.6 Semantics of Subtyping
-        all-child-node-definitions
-             ))
-    )
+
+                new_result (as-> merge-candidates x
+                             (filter 
+                              (fn [mc] 
+                                (let [all-names (as-> result y
+                                                  (map ccr.api.nodetype/child-item-name y)
+                                                  (set y))
+                                      mc-name (ccr.api.nodetype/child-item-name mc)]
+                                  (or (= mc-name "*") ;;residual 
+                                      (not (contains? all-names mc-name))))) x) 
+                             (concat result x))]
+            (recur new_result new_next-to-merge))))))
   
   (supertypes [this]
     (let [mix (ccr.api.nodetype/mixin? this)]
@@ -336,6 +372,6 @@
   ccr.api.nodetype/NodeTypeManager
   
   (node-type [this nodeTypeName]
-    (let [db (tr/current-db this)]    
+    (let [db (tr/current-db session)]    
       (nodetype db nodeTypeName))
     ))

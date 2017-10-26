@@ -31,7 +31,7 @@
       (let [created (d/create-database uri)
             conn    (d/connect uri)]
         (if created (do  (create-schema conn)
-                         ;;(ccr.nodetype/load-builtin-node-types conn)
+                         (ccr.core.nodetype/load-builtin-node-types conn)
                          (ccr.core.workspace/create-workspace conn "default")))
         (->Repository uri conn)))
     (catch datomic.impl.Exceptions$IllegalArgumentExceptionInfo e

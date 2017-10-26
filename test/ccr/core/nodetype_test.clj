@@ -98,8 +98,13 @@
       (is (= false
              (->> (nt/nodetype db "nt:file")
                   (ntapi/child-node-definitions)
-                  (empty?)))))
-    ))
+                  (empty?))))
+      (is (= 1
+             (as-> (nt/nodetype db "nt:file") x
+               (ntapi/child-node-definitions x)
+               (do (println ">>>" (map ntapi/child-item-name x)) x)
+               (count x))))
+    )))
 
 (deftest test-effective-nodetype
   (testing "without conn"
