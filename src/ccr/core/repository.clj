@@ -39,3 +39,5 @@
       (throw (java.lang.IllegalArgumentException. e ))
       )))
 
+(defn delete-repository [repository]
+  (d/delete-database (get repository :uri)))

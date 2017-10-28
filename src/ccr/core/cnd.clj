@@ -5,6 +5,8 @@
             [instaparse.core :as insta]
             [net.cgrand.enlive-html :as html]))
 
+(defn debug [m x] (spit "/home/michael/debug.txt"(print-str x)) x)
+
 (def cnd-parser
   "A function with one parameter of type String. Assumes that the string is in cnd format. Parses the string and returns the syntax tree in :enlive format"
     (insta/parser (slurp (io/resource "cnd.ebnf")) :output-format :enlive))
@@ -191,34 +193,34 @@
                                            :string
                                            html/text-node])]
     (as-> [{:jcr.property/name "jcr:primaryType"
-           :jcr.property/value-attr :jcr.value/name
-           :jcr.property/values [{:jcr.value/name "nt:nodeType"}]}
-          {:jcr.property/name "jcr:nodeTypeName"
-           :jcr.property/value-attr :jcr.value/name
-           :jcr.property/values [{:jcr.value/name nt_name}]}
-          {:jcr.property/name "jcr:supertypes"
-           :jcr.property/value-attr :jcr.value/name
-           :jcr.property/values (->> supertypes
-                                     (map (fn [v]
-                                            {:jcr.value/name v}))
-                                     (into []))}
-          {:jcr.property/name "jcr:isAbstract"
-           :jcr.property/value-attr :jcr.value/boolean
-           :jcr.property/values [{:jcr.value/boolean abstract}]}
-          {:jcr.property/name "jcr:isQueryable"
-           :jcr.property/value-attr :jcr.value/boolean
-           :jcr.property/values [{:jcr.value/boolean queryable}]}
-          {:jcr.property/name "jcr:isMixin"
-           :jcr.property/value-attr :jcr.value/boolean
-           :jcr.property/values [{:jcr.value/boolean mixin}]}
-          {:jcr.property/name "jcr:hasOrderableChildNodes"
-           :jcr.property/value-attr :jcr.value/boolean
-           :jcr.property/values [{:jcr.value/boolean orderable}]}
-          {:jcr.property/name "jcr:primaryItemName"
-           :jcr.property/value-attr :jcr.value/name
-           :jcr.property/values [{:jcr.value/name primaryitem}]}] x
-           (map remove-nil-vals x)
-           (into [] x))))
+            :jcr.property/value-attr :jcr.value/name
+            :jcr.property/values [{:jcr.value/name "nt:nodeType"}]}
+           {:jcr.property/name "jcr:nodeTypeName"
+            :jcr.property/value-attr :jcr.value/name
+            :jcr.property/values [{:jcr.value/name nt_name}]}
+           {:jcr.property/name "jcr:supertypes"
+            :jcr.property/value-attr :jcr.value/name
+            :jcr.property/values (->> supertypes
+                                      (map (fn [v]
+                                             {:jcr.value/name v}))
+                                      (into []))}
+           {:jcr.property/name "jcr:isAbstract"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean abstract}]}
+           {:jcr.property/name "jcr:isQueryable"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean queryable}]}
+           {:jcr.property/name "jcr:isMixin"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean mixin}]}
+           {:jcr.property/name "jcr:hasOrderableChildNodes"
+            :jcr.property/value-attr :jcr.value/boolean
+            :jcr.property/values [{:jcr.value/boolean orderable}]}
+           {:jcr.property/name "jcr:primaryItemName"
+            :jcr.property/value-attr :jcr.value/name
+            :jcr.property/values [{:jcr.value/name primaryitem}]}] x
+      (map remove-nil-vals x)
+      (into [] x))))
 
 (defn nodetype
   "Returns a nested map representing a nodetype "
@@ -238,7 +240,7 @@
      :jcr.node/properties nodetype_properties}))
 
 (defn node-to-tx
-  "Returns a datomic transaction generated from the 'node'. A 'node' is the result of a call of the function parse-cnd-resource.
+  "Returns a datomic transaction generated from the 'node'. A 'node' is the return value of the function parse-cnd-resource.
   This transaction adds all nodetypes defined in 'node' as jcr content."
   [node]
   (as-> node x
@@ -247,6 +249,7 @@
         (vec x)
         (tu/translate-value x)
         (second x)
+        ;;(debug (format "node-to-tx: %s" x) x)
         ))
 
 (defn ^:private parse-cnd-resource 

@@ -11,6 +11,7 @@
 (def db-uri "datomic:mem://jcr")
 
 (defn setup-my-fixture [f]
+  (d/delete-database db-uri)
   (if (d/create-database db-uri)
     (->> (d/connect db-uri) (crepository/create-schema)))
   (f)  
@@ -69,7 +70,12 @@
       (is (= true
              (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
                                         "jcr:content" "nt:base")))
-      (is (thrown? java.lang.IllegalArgumentException
+      (is (= true
+             (ntapi/can-add-child-node? (nt/nodetype db "nt:unstructured") 
+                                        "jcr:content" "nt:file"))
+          "Adding a subtype of the required primary type"
+          )
+      (is (thrown? java.lang.IllegalArgumentException 
              (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
                                         "jcr:content" "nt:base1"))))
 
@@ -102,7 +108,6 @@
       (is (= 1
              (as-> (nt/nodetype db "nt:file") x
                (ntapi/child-node-definitions x)
-               (do (println ">>>" (map ntapi/child-item-name x)) x)
                (count x))))
     )))
 
