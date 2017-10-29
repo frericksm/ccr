@@ -5,8 +5,6 @@
             [instaparse.core :as insta]
             [net.cgrand.enlive-html :as html]))
 
-(defn debug [m x] (spit "/home/michael/debug.txt"(print-str x)) x)
-
 (def cnd-parser
   "A function with one parameter of type String. Assumes that the string is in cnd format. Parses the string and returns the syntax tree in :enlive format"
     (insta/parser (slurp (io/resource "cnd.ebnf")) :output-format :enlive))

@@ -2,6 +2,8 @@
   (:require [datomic.api :as api]
             [clojure.spec.alpha :as s]))
 
+(defn debug [m x] (println m x) x)
+
 (s/def ::tx-result (s/keys :req [::db-after ::db-before]))
 (s/def ::recording (s/coll-of ::tx-result))
 
@@ -13,32 +15,30 @@
     (api/db connection))
   )
 
-(defn to-datomic-transaction [session-transaction]
+(defn ^:private datomic-transaction [session-transaction]
   (apply (:trans-fn session-transaction)
          (:entity-ids session-transaction)))
 
 (defn apply-transaction
-  "Applies a session-transaction to a session. Transactions applied to a session are not directly persisted in datomic. They are applied using the datomic.api/with function.
+  "Applies a session-transaction to a session. A session-transaction is a normal datomic transaction except that entity-ids of the sessions's current-db are used to identify entities. Transactions applied to a session are not directly persisted in datomic. They are applied using the datomic.api/with function.
 
  command-history is a vector of maps. Each map has values to the keys
-  :transact-result (like the return value of the transact function),
+  :tx-result (like the return value of the transact function),
   :as-if-transction (transaction using entity-ids form previous as-if-db) and
   :tempid-transaction (transaction where all as-if-entity-ids are replaced by the initial temp-id if available). "
-  [conn transaction-recorder-atom session-transaction]
+  [conn transaction-recorder-atom tx]
   (swap! transaction-recorder-atom
          (fn [current-value
-              conn
-              session-transaction]
+              t]
            (let [db (calc-current-db conn current-value)
-                 transaction (to-datomic-transaction session-transaction)
-                 new-transact-result (api/with db transaction)]
+                 new-transact-result (api/with db t)]
              (cons {:tx-result new-transact-result
-                    :session-transaction session-transaction}
+                    :as-if-transaction t
+                    :tempid-transaction []}
                    current-value)))
-         conn
-         session-transaction))
+         tx))
 
-(defn intermediate-db-id-to-tempid-map [recording]
+#_(defn intermediate-db-id-to-tempid-map [recording]
   (->> recording
        (map (fn [r]
               (let [tempids (->> r :tx-result :tempids )
@@ -50,7 +50,7 @@
        (apply merge)
        ))
 
-(defn save-recorded-transactions [session]
+#_(defn save-recorded-transactions [session]
   (let [recording-value @(:recording session)
         i2temp (intermediate-db-id-to-tempid-map recording-value)
         t (->> recording-value
@@ -73,6 +73,9 @@
 (defn record-tx
   "Records the transaction tx to the recorder"
   [session tx]
-  (apply-transaction (:conn session) (deref (:transaction-recorder-atom session)) tx))
+  (as-> (apply-transaction (:conn session)
+                           (:transaction-recorder-atom session)
+                           tx) x
+    (last x)))
 
 

@@ -23,5 +23,8 @@
       (testing "aquiring workspacee"
         (is (not (nil? (sapi/workspace s)))))
 
-      (testing "add node" (is (not (nil? (napi/add-node rn "A")))))
+      (testing "add node" (is (not (nil? 
+                                    (let [x (napi/add-node rn "A")]
+                                      (println x)
+                                      x) ))))
       )))
