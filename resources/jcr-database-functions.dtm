@@ -1,0 +1,84 @@
+[
+
+
+ ;; DB functions
+
+ {:db/id #db/id[:db.part/user]
+  :db/ident :append-position-in-scope
+  :db/doc "Atomically adds to the end of a list of sorted cardinality/many lists"
+  :db/fn #db/fn {:lang "clojure"
+                 :params [db scope-id scope-attr new-id pos-attr]
+                 :code [[:db/add new-id pos-attr
+                         (as-> 
+                             ;; The full set of children
+                             (get (datomic.api/entity db scope-id) scope-attr) x
+                           ;; Get only the numerical position attr
+                           (map pos-attr x)
+                           ;; Get the highest one
+                           (reduce max 0 x)
+                           ;; And increment by one
+                           (inc x))]]}}
+ 
+ 
+ {:db/id #db/id[:db.part/user]
+  :db/ident :reset-position-in-scope
+  :db/doc "Goes through existing positions and sequentializes them, assuming retracted-eid is being retracted from the list"
+  :db/fn #db/fn {:lang "clojure"
+                 :params [db scope-id scope-attr retracted-eid sorted-attr]
+                 :code (map-indexed
+                        (fn [idx entity-id]
+                          [:db/add entity-id sorted-attr idx])
+                        (as-> ;; The full set of children
+                            (get (datomic.api/entity db scope-id)
+                                 scope-attr) x
+                          ;; Sort them by the numerical sorted-attr
+                          (sort-by sorted-attr x)
+                          ;; Get the entity IDs
+                          (map :db/id x)
+                          ;; Remove the retracted entity from the list
+                          (filter (partial not= retracted-eid)) x))}}
+ 
+ {:db/id #db/id[:db.part/user]
+  :db/ident :set-position-in-scope
+  :db/doc "Reposition consistently"
+  :db/fn #db/fn {:lang "clojure"
+                 :params [db scope-id scope-attr sorted-eids sorted-attr]
+                 :code (map-indexed
+                        (fn [idx entity-id]
+                          [:db/add entity-id sorted-attr idx])
+                        (concat
+                         sorted-eids
+                         (clojure.set/difference
+                          (map :db/id (scope-attr (datomic.api/entity db scope-id)))
+                          sorted-eids)))}}
+
+ {:db/id #db/id[:db.part/user]
+  :db/ident :add-node
+  :db/doc "Adds a childnode named 'basename' of nodetype 'primary-node-type' to the :jcr.node with entity-id 'parent-node-id'"
+  :db/fn #db/fn {:lang "clojure"
+                 :params [db node-id rel-path primary-node-type]
+                 :requires [[ccr.api.nodetype]
+                            [ccr.core.model :as m]
+                            [ccr.core.model-trans :as mt]
+                            [ccr.core.nodetype :as n]
+                            [ccr.core.path :as p]
+                            [ccr.core.transaction-utils :as tu]
+                            [ccr.core.transactor-support :as ts]]
+                 :code (let [segments (p/to-path rel-path)
+                             parent-segments (drop-last segments)
+                             basename (last segments)
+                             parent-node-id (ts/node-by-path db node-id parent-segments)
+                             pnt (m/first-property-value db parent-node-id "jcr:primaryType")
+                             cnds (ccr.api.nodetype/child-node-definitions (n/nodetype db pnt))
+                             matching-cnd (ts/matching-cnd db cnds basename primary-node-type)
+                             autocreated-childnodes (ts/autocreated-childnodes db matching-cnd)
+                             autocreated-properties (ts/autocreated-properties db matching-cnd)]
+                         (as-> (mt/node-transaction basename autocreated-childnodes
+                                                    autocreated-properties) x
+                           (tu/translate-value x)
+                           (let [child-id (first x)
+                                 child-node-tx (second x)]
+                             (concat (tu/add-tx parent-node-id child-id) child-node-tx)
+                             )))}}
+
+]

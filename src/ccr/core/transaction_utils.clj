@@ -13,6 +13,7 @@
    [:append-position-in-scope node-id :jcr.node/children child-id :jcr.node/position]
    ])
 
+;; https://github.com/avodonosov/datomic-helpers/blob/master/src/datomic_helpers.clj
 (defn translate-value [v]
   ;; Returns a vector of two elements:
   ;; 1. The replacement for V (new :db/id value if V is a map,

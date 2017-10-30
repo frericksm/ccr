@@ -9,9 +9,13 @@
   (:import [ccr.session.Session]))
 
 (def schema-tx (read-string (slurp (io/resource "jcr.dtm"))))
+(def db-fns-tx (read-string (slurp (io/resource "jcr-database-functions.dtm"))))
 
 (defn create-schema [conn]
   @(d/transact conn schema-tx))
+
+(defn create-database-functions [conn]
+  @(d/transact conn db-fns-tx))
 
 (defrecord Repository [uri conn]
   ccr.api.repository/Repository
@@ -31,6 +35,7 @@
       (let [created (d/create-database uri)
             conn    (d/connect uri)]
         (if created (do  (create-schema conn)
+                         (create-database-functions conn)
                          (ccr.core.nodetype/load-builtin-node-types conn)
                          (ccr.core.workspace/create-workspace conn "default")))
         (->Repository uri conn)))

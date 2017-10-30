@@ -22,7 +22,7 @@
                           weid
                           )
                      ffirst)]
-      (ccr.core.node/node this eid)))
+      (ccr.core.node/new-node this eid)))
   
   (workspace [this] (w/workspace this workspace-name)))
 

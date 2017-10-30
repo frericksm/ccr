@@ -39,55 +39,72 @@
   (let [conn (d/connect db-uri)
         tx-data (nt/load-builtin-node-types conn)
         db (d/db conn)]
-    (testing "Read declared supertypes from nodetype with one supertype"
-      (is (= ["nt:hierarchyNode"]
-             (ntapi/declared-supertype-names (nt/nodetype db "nt:linkedFile")))))
+    (testing "Testing nodetype api" 
+      (is (= #{"nt:hierarchyNode"}
+             (ntapi/declared-supertype-names (nt/nodetype db "nt:linkedFile")))
+          "Read declared supertypes from nodetype with one supertype")
 
-    (testing "Read declared supertypes from nodetype with many supertypes"
-      (is (= ["mix:lastModified" "mix:mimeType"]
-             (ntapi/declared-supertype-names (nt/nodetype db "nt:resource")))))
+      (is (= #{"mix:lastModified" "mix:mimeType"}
+             (ntapi/declared-supertype-names (nt/nodetype db "nt:resource")))
+          "Read declared supertypes from nodetype with many supertypes")
 
-    (testing "Read jcr:isAbstract"
       (is (= false
-             (ntapi/abstract? (nt/nodetype db "nt:resource")))))
+             (ntapi/abstract? (nt/nodetype db "nt:resource")))
+          "Read jcr:isAbstract")
 
-    (testing "Read jcr:isMixin"
       (is (= true
-             (ntapi/mixin? (nt/nodetype db "mix:lifecycle")))))
+             (ntapi/mixin? (nt/nodetype db "mix:lifecycle")))
+          "Read jcr:isMixin")
 
-    (testing "Read jcr:hasOderableChildNodes"
       (is (= false
-             (ntapi/orderable-child-nodes? (nt/nodetype db "mix:referenceable")))))
+             (ntapi/orderable-child-nodes? (nt/nodetype db "mix:referenceable")))
+          "Read jcr:hasOderableChildNodes")
 
-    (testing "Read jcr:primaryItemName"
       (is (= "JCR:CONTENT"
-             (ntapi/primary-item-name (nt/nodetype db "nt:file")))))
-    
-    (testing "Can add child node?"
+             (ntapi/primary-item-name (nt/nodetype db "nt:file")))
+          "Read jcr:primaryItemName")
+      
       (is (= true
-             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
-                                        "jcr:content")))
+             (ntapi/can-add-child-node? 
+              (nt/nodetype db "nt:file") 
+              "jcr:content"))
+          "Can add child node?")
+      
       (is (= true
-             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
-                                        "jcr:content" "nt:base")))
+             (ntapi/can-add-child-node? 
+              (nt/nodetype db "nt:file") 
+              "jcr:content" "nt:base"))
+          "Can add child node with node-type?")
       (is (= true
-             (ntapi/can-add-child-node? (nt/nodetype db "nt:unstructured") 
-                                        "jcr:content" "nt:file"))
-          "Adding a subtype of the required primary type"
+             (ntapi/can-add-child-node?
+              (nt/nodetype db "nt:unstructured") 
+              "jcr:content" "nt:file"))
+          "Can add child node with nt:file "
           )
-      (is (thrown? java.lang.IllegalArgumentException 
-             (ntapi/can-add-child-node? (nt/nodetype db "nt:file") 
-                                        "jcr:content" "nt:base1"))))
+      (is (= false 
+             (ntapi/can-add-child-node?
+              (nt/nodetype db "nt:file") 
+              "jcr:content" "nt:base1"))
+          "Can add child node with unknown nodetype")
 
-    (testing "Testing supertypes"
-      (is (= true (ntapi/node-type? (->> (nt/nodetype db "nt:file"))
-                                   "nt:file")))
-      (is (= true (ntapi/node-type? (->> (nt/nodetype db "nt:file"))
-                                   "nt:hierarchyNode")))
-      (is (= true (ntapi/node-type? (->> (nt/nodetype db "nt:file"))
-                                    "nt:base")))
-      (is (= false (ntapi/node-type? (->> (nt/nodetype db "nt:file"))
-                                    "nt:folder"))))
+      (is (= true (ntapi/node-type?
+                   (->> (nt/nodetype db "nt:file"))
+                   "nt:file"))
+          "Testing node-nodetype? with own type")
+
+      (is (= true (ntapi/node-type?
+                   (->> (nt/nodetype db "nt:file"))
+                   "nt:hierarchyNode"))
+          "Testing node-nodetype? with supertype")
+      
+      (is (= true (ntapi/node-type?
+                   (->> (nt/nodetype db "nt:file"))
+                   "nt:base"))
+          "Testing node-nodetype? with nt:base")
+      (is (= false (ntapi/node-type?
+                    (->> (nt/nodetype db "nt:file"))
+                    "nt:folder"))
+          "Testing node-nodetype? with wrong supertype"))
     
     (testing "Read supertypes"
       (is (= #{"nt:hierarchyNode" "nt:base" "mix:created"}

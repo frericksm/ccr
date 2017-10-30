@@ -8,7 +8,7 @@
                           (map (fn [v] {:jcr.value/name v}) x)
                           (vec x))})
 
-(defn node [name children properties]
+(defn node-transaction [name children properties]
   {:jcr.node/name name
    :jcr.node/children children
    :jcr.node/properties properties})

@@ -15,5 +15,4 @@
           ntm (w/node-type-manager w)
           nt (nt/node-type ntm "nt:folder")
           cnd (nt/child-node-definitions nt)]
-      (is (not (nil? nt)))
-      (println cnd))))
+      (is (not (nil? nt))))))

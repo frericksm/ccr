@@ -1,6 +1,8 @@
 (ns ccr.core.model
   (:require [datomic.api :as d  :only [q db pull pull-many transact]]))
 
+(defn debug [m x] (println m x) x)
+
 (defn merge-queries
   "Merges datomic queries. The queries are expected to be in map form"
   [& queries]
@@ -26,6 +28,11 @@
              [?p :jcr.property/value-attr ?a]
              [?p :jcr.property/values ?vs]
              [?vs ?a ?value]]}))
+
+(defn attribute-value-query 
+  "Returns a partial datomic query in map form containing only a where clause that queries the entity ?e, attribute ?a and value ?v"
+  [?e ?a ?v]
+  {:where [[?e ?a ?v]]})
 
 (defn child-node-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its childnode entities ?c"
@@ -69,6 +76,15 @@
     (merge-queries {:find [?e]}
                    (child-node-query ?e child-entity-id))))
 
+(defn all-child-nodes [id]
+  (let [?c (gensym "?c")]
+    (merge-queries {:find [?c]}
+                   (child-node-query id ?c))))
+
+(defn node-name-query [id]
+  (let [?n (gensym "?n")]
+    (merge-queries {:find [?n]}
+                   (attribute-value-query id :jcr.node/name ?n))))
 
 (defn child-query [parent-entity-id childname index]
   (let [?c (gensym "?c")]
