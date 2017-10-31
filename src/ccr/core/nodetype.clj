@@ -18,9 +18,6 @@
     (cnd/node-to-tx x)
     (d/transact connection x)))
 
-
-
-
 (defn ^:private declaring-node-type-name-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its property entity value ?v"
   [child-entity-id]
@@ -30,22 +27,6 @@
                    (m/child-node-query ?e child-entity-id)
                    (m/property-value-query ?e "jcr:primaryType" "nt:nodeType")
                    (m/property-value-query ?e "jcr:nodeTypeName" ?v))))
-
-
-
-(defn ^:private exists-query [nodetype-name]
-  (let [?e  (gensym "?e")]  
-    (m/merge-queries {:find [?e]}
-                   (m/node-type-query ?e nodetype-name))))
-
-(defn ^:private exists? [db nodetype-name]
-  (if (nil? nodetype-name)
-    false
-    (as-> nodetype-name x
-      (exists-query x)
-      (d/q x db) 
-      (empty? x)
-      (not x))))
 
 (defn ^:private declaring-node-type-by-item-id [db id]
   (as-> (declaring-node-type-name-query id) x
@@ -126,10 +107,9 @@
   
   (can-add-child-node?
     [this childNodeName nodeTypeName]
-    (debug "can-add-child-node?" (ts/can-add-child-node? db node-type-name childNodeName nodeTypeName)))        
+    (ts/can-add-child-node? db node-type-name childNodeName nodeTypeName))
 
-  (can-remove-node? [this nodeName]
-    )
+  (can-remove-node? [this nodeName])
 
   (can-remove-property? [this propertyName]
     )
@@ -205,7 +185,7 @@
   (cond (nil? nodetype-name) 
         (throw (IllegalArgumentException. 
                 "Parameter 'nodetype-name' must not be null"))
-        (not (exists? db nodetype-name))
+        (not (ts/exists? db nodetype-name))
         (throw (IllegalArgumentException. 
                 (format "Nodetype %s does not exist" nodetype-name))))
   (->NodeType db nodetype-name))

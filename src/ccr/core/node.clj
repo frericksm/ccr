@@ -24,9 +24,11 @@
         
         parent-node-id (ts/node-by-path db-before node-id parent-segments)
         child-nodes-before (->> (d/q (m/all-child-nodes parent-node-id) db-before)
-                                (map first))
+                                (map first)
+                                (set))
         child-nodes-after (->> (d/q (m/all-child-nodes parent-node-id) db-after)
-                               (map first))
+                               (map first)
+                               (set))
         diff (clojure.set/difference child-nodes-after child-nodes-before)]
     (if (= 1 (count diff))
       (first diff)
@@ -59,7 +61,9 @@
     )
 
   (node [this relPath]
-    (ts/node-by-path session id (p/to-path relPath)))
+    (let [db (tr/current-db session)]
+      (as-> (ts/node-by-path db id (p/to-path relPath)) x
+        (new-node session x))))
 
 
   (nodes [this]

@@ -7,6 +7,20 @@
 (defn child-item-name [db id]
   (m/first-property-value db id "jcr:name"))
 
+(defn exists-query [nodetype-name]
+  (let [?e  (gensym "?e")]  
+    (m/merge-queries {:find [?e]}
+                   (m/node-type-query ?e nodetype-name))))
+
+(defn exists? [db nodetype-name]
+  (if (nil? nodetype-name)
+    false
+    (as-> nodetype-name x
+      (exists-query x)
+      (d/q x db) 
+      (empty? x)
+      (not x))))
+
 (defn mixin? [db node-type-name]
   (as-> node-type-name x
     (m/nodetype-property-query x "jcr:isMixin")
@@ -29,18 +43,20 @@
    supertype2 []
    supertype3 []}"
   [db node-type-name]
-  (loop [h {::root [node-type-name]}]
-    (let [not-visited (clojure.set/difference (set (flatten (vals h)))
-                                              (set (keys h)))]
-      (if (empty? not-visited)
-        (dissoc h ::root)
-        (let [new_h (reduce (fn [a v]
-                              (let [dsn (declared-supertype-names db v)]
-                                (assoc a v dsn)))
-                            h
-                            not-visited
-                            )]
-          (recur new_h))))))
+  (let [start-node-types (if (nil? node-type-name) [] [node-type-name])]
+    (loop [h {::root start-node-types}]
+      (let [found-node-types (set (apply concat (vals h)))
+            visited  (set (keys h))
+            not-visited (clojure.set/difference found-node-types visited)]
+        (if (empty? not-visited)
+          (dissoc h ::root)
+          (let [new_h (reduce (fn [a v]
+                                (let [dsn (declared-supertype-names db v)]
+                                  (assoc a v dsn)))
+                              h
+                              not-visited
+                              )]
+            (recur new_h)))))))
 
 (defn read-child-node-definition-ids [db node-type-name]
       (as-> node-type-name x
@@ -87,7 +103,7 @@
     (set x)))
 
 (defn calc-supertype-names [db node-type-name]
-  (loop [dst1 (declared-supertype-names db node-type-name)]
+  (loop [dst1  (declared-supertype-names db node-type-name)]
     (let [dst2 (as-> dst1 x
                  (map (fn [nt] (declared-supertype-names db nt)) x)
                  (apply concat x)
@@ -97,16 +113,19 @@
         (recur (clojure.set/union dst1 dst2))))))
 
 (defn supertype-names [db node-type-name]
-  (let [mix (mixin? db node-type-name)]
-      (as-> (calc-supertype-names db node-type-name) x
-        (if mix x (cons "nt:base" x))
-        (set x))))
+  (let [exists (exists? db node-type-name)
+        mix (mixin? db node-type-name)
+        stn (set (calc-supertype-names db node-type-name))]
+    (cond (not exists) #{}
+          mix stn
+          true (set (cons "nt:base" stn))
+          )))
 
 (defn ^:private childnode-id-by-name
   "Returns the id of the child node with 'name' of node with parent-node-id"
   [db parent-node-id name]
   (let [g (re-matches  #"([^/:\[\]\|\*]+)(\[(\d+)\])?" name) ;; split basename and optional index
-        basename (second (debug "groups" g))
+        basename (second g)
         index (if (nil? (nth g 3)) 0 (Integer/parseInt (nth g 3)))]
     (as-> (m/child-query parent-node-id basename index) x
       (d/q x db)
@@ -130,16 +149,16 @@
                  new_path-segments))))))
 
 (defn autocreated-childnodes
-  [db childnode-definition]
+  [db childnode-definition-id]
   []
   )
 
 (defn autocreated-properties
-  [db childnode-definition]
+  [db childnode-definition-id]
   []
   )
 
-(defn matching-cnd
+(defn matching-cnd-id
   [db cnd-ids basename primary-node-type]
   (as-> cnd-ids x
     (filter (fn [cnd-id]
@@ -170,7 +189,8 @@
               (= 1 (count residuals))))))
   
   ([db node-type-name childNodeName nt-to-add]
-   (let [type-hierarchy (set (cons nt-to-add (supertype-names db nt-to-add)))
+   (let [stn (supertype-names db nt-to-add)
+         type-hierarchy (set (cons nt-to-add stn))
          nd-ids (child-node-definition-ids db node-type-name)
          name-match-cndefs (filter (fn [cd] 
                                      (and (= childNodeName

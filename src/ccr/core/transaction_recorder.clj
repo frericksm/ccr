@@ -76,6 +76,6 @@
   (as-> (apply-transaction (:conn session)
                            (:transaction-recorder-atom session)
                            tx) x
-    (last x)))
+    (first x)))
 
 

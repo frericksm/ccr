@@ -20,16 +20,18 @@
           s (rapi/login r)
           rn (sapi/root-node s)]
       
-      (testing "aquiring workspacee"
-        (is (not (nil? (sapi/workspace s)))))
+      (is (not (nil? (sapi/workspace s))) "aquiring workspace")
 
-      (testing "add node" 
-        (is (= "A" 
-               (let [a1 (napi/add-node rn "A")
-                     a2 (napi/item-name a1)]
-                 a2) ))
-        (is (= "B" 
-               (let [a1 (napi/add-node rn "A/B")
-                     a2 (napi/item-name a1)]
-                 a2) )))
+      (is (= "A" 
+             (let [a1 (napi/add-node rn "A")
+                   a2 (napi/item-name a1)]
+               a2)) "add node 'A'")
+      (is (= "B" 
+             (let [a1 (napi/add-node (napi/node rn "A") "B")
+                   a2 (napi/item-name a1)]
+               a2)) "add node 'B' to node '/A'")
+      (is (= "C" 
+             (let [a1 (napi/add-node (sapi/root-node s) "A/C")
+                   a2 (napi/item-name a1)]
+               a2)) "add node 'A/C' to root node")
       )))
