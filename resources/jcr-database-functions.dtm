@@ -57,8 +57,7 @@
   :db/doc "Adds a childnode named 'basename' of nodetype 'primary-node-type' to the :jcr.node with entity-id 'parent-node-id'"
   :db/fn #db/fn {:lang "clojure"
                  :params [db node-id rel-path primary-node-type]
-                 :requires [[ccr.core.model :as m]
-                            [ccr.core.model-trans :as mt]
+                 :requires [[ccr.core.model-trans :as mt]
                             [ccr.core.path :as p]
                             [ccr.core.transaction-utils :as tu]
                             [ccr.core.transactor-support :as ts]]
@@ -66,11 +65,16 @@
                              parent-segments (drop-last segments)
                              basename (last segments)
                              parent-node-id (ts/node-by-path db node-id parent-segments)
-                             pnt (m/first-property-value db parent-node-id "jcr:primaryType")
+                             pnt (ts/primary-type db parent-node-id)
                              cnd-ids (ts/child-node-definition-ids db pnt)
                              matching-cnd-id (ts/matching-cnd-id db cnd-ids basename primary-node-type)
+                             new-primary-node-type (if (not (nil? primary-node-type))
+                                                     primary-node-type
+                                                     (ts/default-primary-type db matching-cnd-id))
                              autocreated-childnodes (ts/autocreated-childnodes db matching-cnd-id)
-                             autocreated-properties (ts/autocreated-properties db matching-cnd-id)]
+                             autocreated-properties (ts/autocreated-properties db new-primary-node-type)]
+                         #_(println autocreated-properties)
+                         (if (nil? new-primary-node-type) (throw (IllegalArgumentException. "no primary nodetype specified")))
                          (as-> (mt/node-transaction basename autocreated-childnodes
                                                     autocreated-properties) x
                            (tu/translate-value x)

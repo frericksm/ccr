@@ -96,6 +96,12 @@
    :type_reference      "Reference"
    :type_undefined      "Undefined"})
 
+(defn jcr-value-attr [type]
+  (->> type
+       (clojure.string/lower-case)
+       (format "jcr.value/%s" )
+       keyword))
+
 (defn ^:private property-definition-properties  [node]
   (let [property_name (first (html/select node [:property_name html/text-node]))
         prop_type     (->> (html/select node [:property_type html/first-child])
@@ -246,9 +252,7 @@
         (map nodetype x)
         (vec x)
         (tu/translate-value x)
-        (second x)
-        ;;(debug (format "node-to-tx: %s" x) x)
-        ))
+        (second x)))
 
 (defn ^:private parse-cnd-resource 
   "Returns the syntax tree of the parsed cnd file"

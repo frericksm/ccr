@@ -15,7 +15,7 @@
       (testing "aquiring workspacee"
         (is (not (nil? (sapi/workspace s)))))))
   
-  (testing "Root node"
+  (testing "Add nodes via root node"
     (let [r (repository/repository {"ccr.datomic.uri" "datomic:mem://jcr"})
           s (rapi/login r)
           rn (sapi/root-node s)]

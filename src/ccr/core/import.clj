@@ -2,6 +2,7 @@
   (:require [clojure.data.xml :as xml]
             [clojure.instant :as instant]
             [clojure.java.io :as io]
+            [ccr.core.cnd :as cnd]
             [ccr.core.transaction-utils :as tu]
             [datomic.api :as d  :only [q db]]
             [net.cgrand.enlive-html :as html]
@@ -18,11 +19,7 @@
        "Boolean" (Boolean/valueOf val)
        "Binary" (tu/decode64 val)))
 
-(defn jcr-value-attr [type]
-  (->> type
-       (clojure.string/lower-case)
-       (format "jcr.value/%s" )
-       keyword))
+
 
 (defn props [node]
   (as-> node x
@@ -31,7 +28,7 @@
                (let [a         (:attrs p)
                      type      (:sv/type a)
                      name      (:sv/name a)
-                     val-attr  (jcr-value-attr type)]
+                     val-attr  (cnd/jcr-value-attr type)]
                  {:jcr.property/name name
                   :jcr.property/value-attr val-attr
                   :jcr.property/values

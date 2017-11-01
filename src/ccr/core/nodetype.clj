@@ -43,7 +43,7 @@
     (m/first-property-value db id "jcr:sameNameSiblings"))
 
   (default-primary-type [this]
-    (m/first-property-value db id "jcr:defaultPrimaryType"))
+    (ts/default-primary-type db id))
 
   (required-primary-type-names [this]
     (ts/required-primary-type-names db id))
@@ -65,10 +65,10 @@
     (m/first-property-value db id "jcr:onParentVersion"))
   
   (auto-created? [this]
-    (m/first-property-value db id "jcr:autoCreated"))
+    (ts/autocreated? db id))
 
   (mandatory? [this]
-    (m/first-property-value db id "jcr:mandatory"))
+    (ts/mandatory? db id))
 
   (protected? [this]
     (m/first-property-value db id "jcr:protected")))
@@ -81,17 +81,17 @@
   (declaring-node-type [this]
     (declaring-node-type-by-item-id db id))
 
-  (child-item-name [this] 
-    (m/first-property-value db id "jcr:name"))
+  (child-item-name [this]
+    (ts/child-item-name db id))
 
   (on-parent-version [this]
     (m/first-property-value db id "jcr:onParentVersion"))
   
   (auto-created? [this]
-    (m/first-property-value db id "jcr:autoCreated"))
+    (ts/autocreated? db id))
 
   (mandatory? [this]
-    (m/first-property-value db id "jcr:mandatory"))
+    (ts/mandatory? db id))
 
   (protected? [this]
     (m/first-property-value db id "jcr:protected")))
@@ -170,11 +170,9 @@
       (first x)))
 
   (declared-property-definitions [this]
-    (as-> node-type-name x
-      (m/nodetype-child-query x "jcr:propertyDefinition")
-      (d/q x db) 
-      (map first x)
-      (map (fn [id] (->PropertyDefinition db id)) x)))
+    (as-> (ts/read-property-definition-ids
+           db node-type-name) x
+         (map (fn [id] (->PropertyDefinition db id)) x)))
 
   (declared-child-node-definitions [this]
     (as-> (ts/read-child-node-definition-ids
