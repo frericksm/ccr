@@ -85,4 +85,32 @@
                              tx
                              )))}}
 
+{:db/id #db/id[:db.part/user]
+  :db/ident :set-property
+  :db/doc "Sets the property of the node (with node-id) called name to the specified values. Even if this property is single-valued the value has to put into a seq values"
+  :db/fn #db/fn {:lang "clojure"
+                 :params [db node-id name values]
+                 :requires [[ccr.core.model-trans :as mt]
+                            [ccr.core.path :as p]
+                            [ccr.core.transaction-utils :as tu]
+                            [ccr.core.transactor-support :as ts]]
+                 :code (let [pnt (ts/primary-type db parent-node-id)
+                             cnd-ids (ts/child-node-definition-ids db pnt)
+                             matching-cnd-id (ts/matching-cnd-id db cnd-ids basename primary-node-type)
+                             new-primary-node-type (if (not (nil? primary-node-type))
+                                                     primary-node-type
+                                                     (ts/default-primary-type db matching-cnd-id))
+                             autocreated-childnodes (ts/autocreated-childnodes db matching-cnd-id)
+                             autocreated-properties (ts/autocreated-properties db new-primary-node-type)]
+                         #_(println autocreated-properties)
+                         (if (nil? new-primary-node-type) (throw (IllegalArgumentException. "no primary nodetype specified")))
+                         (as-> (mt/node-transaction basename autocreated-childnodes
+                                                    autocreated-properties) x
+                           (tu/translate-value x)
+                           (let [child-id (first x)
+                                 child-node-tx (second x)
+                                 tx (concat (tu/add-tx parent-node-id child-id) child-node-tx)]
+                             #_(println "tx" tx)
+                             tx
+                             )))}}
 ]

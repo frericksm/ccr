@@ -10,7 +10,9 @@
 (defn debug [m x] (println m x) x)
 
 (declare new-node)
+(declare new-property)
  
+(defn find-property [tx-result name])
 
 (defn find-new-child-id 
   "Returns the id of the newly added child to node with 'node-id' at rel-path"
@@ -48,17 +50,13 @@
       (find-new-child-id (:tx-result x) id relPath)
       (new-node session x)))
   
-  (definition [this]
-    )
+  (definition [this])
   
-  (identifier [this]
-    )
+  (identifier [this])
   
-  (index [this]
-    )
+  (index [this])
   
-  (mixinNodeTypes [this]
-    )
+  (mixinNodeTypes [this])
 
   (node [this relPath]
     (let [db (tr/current-db session)]
@@ -66,26 +64,30 @@
         (new-node session x))))
 
 
-  (nodes [this]
-       )
+  (nodes [this])
 
-  (nodes [this namePattern]
-    )
-  (primary-item [this]
-    )
+  (nodes [this namePattern])
 
-  (primary-nodetype [this]
-    )
+  (primary-item [this])
+
+  (primary-nodetype [this])
+
+  (property [this relPath])
+
+  (properties [this])  
   
+  (set-property [this name values]
+    ;; transaction function :set-property
+    (as-> [[:set-property id name values]] x 
+      (tr/record-tx session x)
+      (find-property (:tx-result x) name)
+      (new-property session x)))
 
-  
   ccr.api.node/Item
 
-  (ancestor [this depth]
-    )
+  (ancestor [this depth])
 
-  (depth [this]
-    )
+  (depth [this])
 
   (item-name [this]
     (let [db (tr/current-db session)]
@@ -118,10 +120,61 @@
 
   (refresh [this keepChanges]
     )
+
   (remove-item [this]
     )
-
+  
   )
 
 (defn new-node [session id]
   (->NodeImpl session id))
+
+
+(deftype PropertyImpl [session id]
+  ccr.api.node/Property
+
+  ccr.api.node/Item
+
+  (ancestor [this depth])
+
+  (depth [this])
+
+  (item-name [this]
+    (let [db (tr/current-db session)]
+      (as-> (m/node-name-query id) x
+        (d/q x db)
+        (map first x)
+        (first x))))
+ 
+
+  (parent [this]
+    )
+
+  (path [this]
+    )
+
+  (session [this]
+    )
+
+  (modified? [this]
+    )
+
+  (new? [this]
+    )
+
+  (node? [this]
+    )
+
+  (same? [this otherItem]
+    )
+
+  (refresh [this keepChanges]
+    )
+
+  (remove-item [this]
+    )
+  
+  )
+
+(defn new-property [session id]
+  (->PropertyImpl session id))

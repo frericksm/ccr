@@ -71,6 +71,15 @@
 
   (primary-nodetype [this]
     "Returns the primary node type in effect for this node.")
-  )
+
+  (property [this relPath]
+    "Returns the property at relPath relative to this node. The same reacquisition semantics apply as with function node.")
+
+  (properties [this]
+    "Returns all properties of this node accessible through the current Session. Does not include child nodes of this node. The same reacquisition semantics apply as with function node. If this node has no accessible properties, then an empty iterator is returned.")
+
+  (set-property [this name values]
+    "Sets the property of this node called name to the specified values.
+Even if this property is single-valued the value has to put into a seq values"))
 
 (defprotocol Property  )
