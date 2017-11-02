@@ -9,6 +9,9 @@
 (defn defense-not-null [parameter-name value]
   (if (nil? value) (throw (IllegalArgumentException. (format "Parameter '%s' must not be null" parameter-name)))))
 
+(defn multiple? [db id]
+  (m/first-property-value db id "jcr:multiple"))
+
 (defn mandatory? [db id]
   (m/first-property-value db id "jcr:mandatory"))
 
@@ -54,12 +57,6 @@
     (set x)))
 
 
-(defn ^:private property-attribute [db id]
-  (as-> (required-type db id) x
-    )
-  )
-
-
 (defn ^:private supertypes [db nt]
   (let [dsn (declared-supertype-names db nt)
         dsn-empty? (empty? dsn)
@@ -102,6 +99,12 @@
                               h
                               not-visited)]
             (recur new_h)))))))
+
+(defn property-by-name [db id property-name]
+  (as-> (m/property-by-name-query id property-name) x
+    (d/q x db) 
+    (map first x)
+    (first x)))
 
 (defn read-child-node-definition-ids [db node-type-name]
   (defense-not-null "node-type-name" node-type-name)
@@ -180,6 +183,17 @@
       (cond mixin stn
             true (set (cons "nt:base" stn))))))
 
+(defn ^:private property-id-by-name
+  "Returns the id of the child node with 'name' of node with parent-node-id"
+  [db parent-node-id name]
+  (let [g (re-matches  #"([^/:\[\]\|\*]+)(\[(\d+)\])?" name) ;; split basename and optional index
+        basename (second g)
+        index (if (nil? (nth g 3)) 0 (Integer/parseInt (nth g 3)))]
+    (as-> (m/child-query parent-node-id basename index) x
+      (d/q x db)
+      (map first x)
+      (first x))))
+
 (defn ^:private childnode-id-by-name
   "Returns the id of the child node with 'name' of node with parent-node-id"
   [db parent-node-id name]
@@ -190,6 +204,25 @@
       (d/q x db)
       (map first x)
       (first x))))
+
+(defn item-by-path
+  "Returns the child node of 'parent-node' denoted by 'rel-path-segments' (the result of ccr.core.path/to-path)"
+  [db parent-node-id rel-path-segments]
+
+  (loop [node-id  parent-node-id
+         path-segments rel-path-segments]
+    (if (nil? node-id)
+      (throw (IllegalArgumentException. "Path not found"))
+      (if (empty? path-segments)
+        node-id
+        (let [segment (first path-segments)
+              new_path-segments (rest path-segments)
+              maybe-node-id (childnode-id-by-name db node-id segment) 
+              new_node-id (if (and (nil? maybe-node-id) (empty? new_path-segments))
+                            (property-id-by-name db node-id segment)
+                            (childnode-id-by-name db node-id segment))]
+          (recur new_node-id
+                 new_path-segments))))))
 
 (defn node-by-path
   "Returns the child node of 'parent-node' denoted by 'rel-path-segments' (the result of ccr.core.path/to-path)"
@@ -256,13 +289,40 @@
   (as-> (property-definition-ids db node-type-name) x
     (filter (fn [pdid] (autocreated? db pdid)) x)
     (map (fn [id] (let [name (child-item-name db id)
-                        type (cnd/jcr-value-attr (property-attribute db id))
+                        type (cnd/jcr-value-attr (required-type db id))
                         default-values (default-values db id)
                         values (autocreated-values name
                                                    node-type-name
                                                    default-values)]
                     (mt/property-transaction name type values))) x)
     (vec x)))
+
+
+(defn matching-propdef-id
+  [db propdef-ids name value-multiple? jcr-type]
+  (as-> propdef-ids x
+    (filter (fn [propdef-id]
+              (debug "name" name)
+              (debug "value-multiple?" value-multiple?)
+              (debug "jcr-type" jcr-type)
+              (let [cin (debug "cin" (child-item-name db propdef-id))
+                    pt (debug "pt" (required-type db propdef-id))
+                    prop-multiple? (debug "multi?" (multiple? db propdef-id))
+                    cin-residual? (= "*" cin)
+                    cin-matches? (= name cin)
+                    cardinality-matches? (= value-multiple? prop-multiple?)
+                    covers-type? (or (= "Undefined" pt)
+                                     (= jcr-type pt))]
+                (or (and  cin-residual? covers-type? cardinality-matches?)
+                    (and  cin-matches? covers-type? cardinality-matches?)))
+              )
+            x)
+    (if (not= 1 (count x))
+      (throw (IllegalArgumentException. 
+              (format "Counted %d matching property definitions for propertyname '%s' multiple? %b and jcr type '%s'"
+                      (count x) name value-multiple? jcr-type)))
+      (first x))
+    ))
 
 (defn matching-cnd-id
   [db cnd-ids basename primary-node-type]
@@ -281,7 +341,7 @@
             x)
     (if (not= 1 (count x))
       (throw (IllegalArgumentException. 
-              (format "Counted %d matching child node definition for child-item-name '%s' and primary-node-type '%s'" (count x) basename primary-node-type)))
+              (format "Counted %d matching child node definitions for child-item-name '%s' and primary-node-type '%s'" (count x) basename primary-node-type)))
       (first x))
     ))
 

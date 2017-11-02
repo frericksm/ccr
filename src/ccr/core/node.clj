@@ -72,13 +72,23 @@
 
   (primary-nodetype [this])
 
-  (property [this relPath])
+  (property [this relPath]
+    (let [db (tr/current-db session)]
+      (as-> (ts/node-by-path db id (p/to-path relPath)) x
+        (new-node session x))))
 
   (properties [this])  
   
-  (set-property [this name values]
+  (set-property-value [this name value jcr-type]
     ;; transaction function :set-property
-    (as-> [[:set-property id name values]] x 
+    (as-> [[:set-property id name [value] jcr-type false]] x 
+      (tr/record-tx session x)
+      (find-property (:tx-result x) name)
+      (new-property session x)))
+
+  (set-property-values [this name values jcr-type]
+    ;; transaction function :set-property
+    (as-> [[:set-property id name values jcr-type true]] x 
       (tr/record-tx session x)
       (find-property (:tx-result x) name)
       (new-property session x)))

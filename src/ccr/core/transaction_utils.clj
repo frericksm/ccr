@@ -13,6 +13,11 @@
    [:append-position-in-scope node-id :jcr.node/children child-id :jcr.node/position]
    ])
 
+(defn add-prop-tx [node-id prop-id]
+  [{:db/id               node-id
+    :jcr.node/properties prop-id}
+   ])
+
 ;; https://github.com/avodonosov/datomic-helpers/blob/master/src/datomic_helpers.clj
 (defn translate-value [v]
   ;; Returns a vector of two elements:

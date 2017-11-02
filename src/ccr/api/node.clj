@@ -78,8 +78,10 @@
   (properties [this]
     "Returns all properties of this node accessible through the current Session. Does not include child nodes of this node. The same reacquisition semantics apply as with function node. If this node has no accessible properties, then an empty iterator is returned.")
 
-  (set-property [this name values]
-    "Sets the property of this node called name to the specified values.
-Even if this property is single-valued the value has to put into a seq values"))
+  (set-property-value [this name value jcr-type]
+    "Sets the property of this node called 'name' to the specified single 'value' of type 'jcr-type'.")
+  (set-property-values [this name values jcr-type]
+    "Sets the property of this node called 'name' to the specified multiple 'values' of type 'jcr-type'.")
+  )
 
 (defprotocol Property  )

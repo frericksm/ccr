@@ -25,8 +25,8 @@
         ?v (gensym "?v")]
     (m/merge-queries {:find [?v]}
                    (m/child-node-query ?e child-entity-id)
-                   (m/property-value-query ?e "jcr:primaryType" "nt:nodeType")
-                   (m/property-value-query ?e "jcr:nodeTypeName" ?v))))
+                   (m/property-value-join-query ?e "jcr:primaryType" "nt:nodeType")
+                   (m/property-value-join-query ?e "jcr:nodeTypeName" ?v))))
 
 (defn ^:private declaring-node-type-by-item-id [db id]
   (as-> (declaring-node-type-name-query id) x

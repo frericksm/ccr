@@ -53,6 +53,28 @@
                           sorted-eids)))}}
 
  {:db/id #db/id[:db.part/user]
+  :db/ident :reset-to-many
+  :db/fn #db/fn {:lang :clojure
+                 :requires [[datomic.api :as d]]
+                 :params [db e attr new-vals]
+                 :code (let [ent (or (d/entity db e)
+                                     (throw (ex-info "Entity not found" 
+                                                     {:e e :t (d/basis-t db)})))
+                             entid (:db/id ent)
+                             old-vals (get ent attr)]
+                         (into
+                          [{:db/id (:db/id ent)
+                            ;; adding the new values
+                            attr new-vals}]
+                          ;; retracting the old values
+                          (comp
+                           (remove (set new-vals))
+                           (map (fn [v]
+                                  [:db/retract entid attr v])))
+                          old-vals)
+                         )}}
+ 
+ {:db/id #db/id[:db.part/user]
   :db/ident :add-node
   :db/doc "Adds a childnode named 'basename' of nodetype 'primary-node-type' to the :jcr.node with entity-id 'parent-node-id'"
   :db/fn #db/fn {:lang "clojure"
@@ -87,30 +109,39 @@
 
 {:db/id #db/id[:db.part/user]
   :db/ident :set-property
-  :db/doc "Sets the property of the node (with node-id) called name to the specified values. Even if this property is single-valued the value has to put into a seq values"
+  :db/doc "Sets the property of the node (with node-id) called name to the specified values. Even if this property is single-valued the parameter values has to be a coll"
   :db/fn #db/fn {:lang "clojure"
-                 :params [db node-id name values]
+                 :params [db node-id name values jcr-type multiple?]
                  :requires [[ccr.core.model-trans :as mt]
                             [ccr.core.path :as p]
+                            [ccr.core.cnd :as cnd]
                             [ccr.core.transaction-utils :as tu]
                             [ccr.core.transactor-support :as ts]]
-                 :code (let [pnt (ts/primary-type db parent-node-id)
-                             cnd-ids (ts/child-node-definition-ids db pnt)
-                             matching-cnd-id (ts/matching-cnd-id db cnd-ids basename primary-node-type)
-                             new-primary-node-type (if (not (nil? primary-node-type))
-                                                     primary-node-type
-                                                     (ts/default-primary-type db matching-cnd-id))
-                             autocreated-childnodes (ts/autocreated-childnodes db matching-cnd-id)
-                             autocreated-properties (ts/autocreated-properties db new-primary-node-type)]
-                         #_(println autocreated-properties)
-                         (if (nil? new-primary-node-type) (throw (IllegalArgumentException. "no primary nodetype specified")))
-                         (as-> (mt/node-transaction basename autocreated-childnodes
-                                                    autocreated-properties) x
-                           (tu/translate-value x)
-                           (let [child-id (first x)
-                                 child-node-tx (second x)
-                                 tx (concat (tu/add-tx parent-node-id child-id) child-node-tx)]
-                             #_(println "tx" tx)
-                             tx
-                             )))}}
-]
+                 :code (let [pnt (ts/primary-type db node-id)
+                             propdef-ids (ts/property-definition-ids db pnt)
+                             matching-propdef-id (ts/matching-propdef-id db propdef-ids name multiple? jcr-type)
+                             type (cnd/jcr-value-attr jcr-type)
+                             prop-id (ts/property-by-name db node-id name)]
+                         (when (not (coll? values)) (throw (IllegalArgumentException. "Parameter 'values' must be a collection")))
+                         ;;(println propdef-ids)
+                         ;;(println matching-propdef-id)
+                         (if (nil? prop-id)
+                           ;; new property
+                           (as-> (mt/property-transaction name type values) x
+                             (tu/translate-value x)
+                             (let [property-id (first x)
+                                   property-tx (second x)
+                                   tx (concat (tu/add-prop-tx node-id property-id) property-tx)]
+                               (println "tx" tx)
+                               tx))
+
+                           ;; existing property
+                           (as-> (mt/update-values name type values) x
+                             (tu/translate-value x)
+                             (let [property-id (first x)
+                                   property-tx (second x)]
+                               #_(println "property-tx" property-tx)
+                               property-tx))))
+                 }
+ }
+ ]

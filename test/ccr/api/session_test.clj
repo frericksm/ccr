@@ -34,4 +34,16 @@
              (let [a1 (napi/add-node (sapi/root-node s) "A/C")
                    a2 (napi/item-name a1)]
                a2)) "add node 'A/C' to root node")
+      ))
+
+  (testing "Set properties"
+    (let [r (repository/repository {"ccr.datomic.uri" "datomic:mem://jcr"})
+          s (rapi/login r)
+          rn (sapi/root-node s)
+          node-a (napi/add-node rn "A") ]
+      
+      (is (= "value1" 
+             (let [p1 (napi/set-property-value node-a "prop1" "value1" "String")
+                   v1 (napi/property node-a "prop1")]
+               v1)) "setting a property on a node of type nt:unstructed")
       )))

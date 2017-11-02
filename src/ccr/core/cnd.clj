@@ -102,6 +102,25 @@
        (format "jcr.value/%s" )
        keyword))
 
+#_(defn jcr-types
+  "Returns a set of possible JCR types for a java class"
+  [class]
+  (as-> (condp = class
+          java.lang.String         ["String" "Name" "Path"
+                                    "Weakreference" "Reference"]
+          java.lang.Long           ["Long" "Weakreference" "Reference"]
+      ;;    java.lang.Binary         "Binary"
+          java.lang.Double         ["Double"]
+          java.lang.Boolean        ["Boolean"]
+          java.util.Date           ["Date"]
+  ;;        java.lang.Name           "Name"
+  ;;        java.lang.Path           "Path"
+  ;;        java.lang.Weak_reference "Weakreference"
+  ;;        java.lang.Reference      "Reference"
+          ) x
+    (if (nil? x) (throw (IllegalArgumentException. (format "Cannot assign a JCR types to class '%s'" class)))
+        (set x))))
+
 (defn ^:private property-definition-properties  [node]
   (let [property_name (first (html/select node [:property_name html/text-node]))
         prop_type     (->> (html/select node [:property_type html/first-child])
