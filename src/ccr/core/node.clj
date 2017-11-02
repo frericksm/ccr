@@ -74,8 +74,8 @@
 
   (property [this relPath]
     (let [db (tr/current-db session)]
-      (as-> (ts/node-by-path db id (p/to-path relPath)) x
-        (new-node session x))))
+      (as-> (ts/item-by-path db id (p/to-path relPath)) x
+        (new-property session x))))
 
   (properties [this])  
   
@@ -184,6 +184,15 @@
   (remove-item [this]
     )
   
+  (value [this]
+    (let [db (tr/current-db session)]
+      (m/first-value db id))
+    )
+
+  (values [this]
+    (let [db (tr/current-db session)]
+      (m/all-values db id))
+    )
   )
 
 (defn new-property [session id]

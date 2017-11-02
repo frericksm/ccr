@@ -186,13 +186,10 @@
 (defn ^:private property-id-by-name
   "Returns the id of the child node with 'name' of node with parent-node-id"
   [db parent-node-id name]
-  (let [g (re-matches  #"([^/:\[\]\|\*]+)(\[(\d+)\])?" name) ;; split basename and optional index
-        basename (second g)
-        index (if (nil? (nth g 3)) 0 (Integer/parseInt (nth g 3)))]
-    (as-> (m/child-query parent-node-id basename index) x
-      (d/q x db)
-      (map first x)
-      (first x))))
+  (as-> (m/property-query parent-node-id name) x
+    (d/q x db)
+    (map first x)
+    (first x)))
 
 (defn ^:private childnode-id-by-name
   "Returns the id of the child node with 'name' of node with parent-node-id"
@@ -302,12 +299,12 @@
   [db propdef-ids name value-multiple? jcr-type]
   (as-> propdef-ids x
     (filter (fn [propdef-id]
-              (debug "name" name)
-              (debug "value-multiple?" value-multiple?)
-              (debug "jcr-type" jcr-type)
-              (let [cin (debug "cin" (child-item-name db propdef-id))
-                    pt (debug "pt" (required-type db propdef-id))
-                    prop-multiple? (debug "multi?" (multiple? db propdef-id))
+              #_(debug "name" name)
+              #_(debug "value-multiple?" value-multiple?)
+              #_(debug "jcr-type" jcr-type)
+              (let [cin (child-item-name db propdef-id)
+                    pt (required-type db propdef-id)
+                    prop-multiple? (multiple? db propdef-id)
                     cin-residual? (= "*" cin)
                     cin-matches? (= name cin)
                     cardinality-matches? (= value-multiple? prop-multiple?)
@@ -383,3 +380,7 @@
 
 (defn default-primary-type [db id]
   (m/first-property-value db id "jcr:defaultPrimaryType"))
+
+(defn value-entities [db prop-id]
+  
+  )

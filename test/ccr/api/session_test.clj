@@ -44,6 +44,26 @@
       
       (is (= "value1" 
              (let [p1 (napi/set-property-value node-a "prop1" "value1" "String")
-                   v1 (napi/property node-a "prop1")]
+                   v1 (as-> (napi/property node-a "prop1") x
+                        (napi/value x))]
                v1)) "setting a property on a node of type nt:unstructed")
+      
+      (is (= "value2" 
+             (let [p1 (napi/set-property-value node-a "prop1" "value2" "String")
+                   v1 (as-> (napi/property node-a "prop1") x
+                        (napi/value x))]
+               v1)) "updating a property on a node of type nt:unstructed")
+
+      (is (= ["value1"] 
+             (let [p1 (napi/set-property-values node-a "prop2" ["value1"] "String")
+                   v1 (as-> (napi/property node-a "prop2") x
+                        (napi/values x))]
+               v1)) "setting a property on a node of type nt:unstructed")
+      
+      (is (= ["value2"] 
+             (let [p1 (napi/set-property-values node-a "prop2" ["value2"] "String")
+                   v1 (as-> (napi/property node-a "prop2") x
+                        (napi/values x))]
+               v1)) "updating a property on a node of type nt:unstructed")
+
       )))

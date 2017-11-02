@@ -117,31 +117,32 @@
                             [ccr.core.cnd :as cnd]
                             [ccr.core.transaction-utils :as tu]
                             [ccr.core.transactor-support :as ts]]
-                 :code (let [pnt (ts/primary-type db node-id)
-                             propdef-ids (ts/property-definition-ids db pnt)
-                             matching-propdef-id (ts/matching-propdef-id db propdef-ids name multiple? jcr-type)
-                             type (cnd/jcr-value-attr jcr-type)
-                             prop-id (ts/property-by-name db node-id name)]
-                         (when (not (coll? values)) (throw (IllegalArgumentException. "Parameter 'values' must be a collection")))
-                         ;;(println propdef-ids)
-                         ;;(println matching-propdef-id)
-                         (if (nil? prop-id)
-                           ;; new property
-                           (as-> (mt/property-transaction name type values) x
-                             (tu/translate-value x)
-                             (let [property-id (first x)
-                                   property-tx (second x)
-                                   tx (concat (tu/add-prop-tx node-id property-id) property-tx)]
-                               (println "tx" tx)
-                               tx))
+                 :code (do (when (not (coll? values)) (throw (IllegalArgumentException. "Parameter 'values' must be a collection")))
+                           (let [pnt (ts/primary-type db node-id)
+                                 propdef-ids (ts/property-definition-ids db pnt)
+                                 matching-propdef-id (ts/matching-propdef-id db propdef-ids name multiple? jcr-type)
+                                 value-attr (cnd/jcr-value-attr jcr-type)
+                                 prop-id (ts/property-by-name db node-id name)]
+                             (if (nil? prop-id)
 
-                           ;; existing property
-                           (as-> (mt/update-values name type values) x
-                             (tu/translate-value x)
-                             (let [property-id (first x)
-                                   property-tx (second x)]
-                               #_(println "property-tx" property-tx)
-                               property-tx))))
+                               ;; new property
+                               (as-> (mt/property-transaction name value-attr values) x
+                                 (tu/translate-value x)
+                                 (let [property-id (first x)
+                                       property-tx (second x)
+                                       tx (concat (tu/add-prop-tx node-id property-id) property-tx)]
+                                   #_(println "tx" tx)
+                                   tx))
+
+                               ;; existing property
+                               (let [old-values-entities (ts/value-entities db prop-id)]
+                                 (as-> (mt/update-values old-values-entities values value-attr) x
+                                   (tu/translate-value x)
+                                   (let [value-ids (first x)
+                                         property-tx (second x)
+                                         tx (concat (tu/add-vals-tx prop-id value-ids) property-tx)]
+                                     #_(println "tx" tx)
+                                     tx))))))
                  }
  }
  ]

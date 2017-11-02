@@ -23,8 +23,17 @@
   {:where [[?e :jcr.node/properties ?p]
            [?p :jcr.property/name ?property-name]]})
 
+(defn value-join-query 
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.property ?e and the value of :jcr.value entity of that property."
+  [?e ?value]
+  (let [?a  (gensym "?a")
+        ?vs (gensym "?vs")]
+    {:where [[?e :jcr.property/value-attr ?a]
+             [?e :jcr.property/values ?vs]
+             [?vs ?a ?value]]}))
+
 (defn property-value-join-query 
-  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e with its :jcr.property entity named ?property-name and the value of :jcr.value entity of that property."
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its :jcr.property entity named ?property-name and the value of :jcr.value entity of that property."
   [?e ?property-name ?value]
   (let [?p  (gensym "?p")
         ?a  (gensym "?a")
@@ -57,6 +66,11 @@
   (merge-queries
    (property-value-join-query ?e "jcr:primaryType" "nt:nodeType")
    (property-value-join-query ?e "jcr:nodeTypeName" ?v)))
+
+(defn ^:private value-query [?e]
+  (let [?pv (gensym "?pv")]
+    (merge-queries {:find [?pv]}
+                   (value-join-query ?e ?pv))))
 
 (defn ^:private property-value-query [?e property-name]
   (let [?pv (gensym "?pv")]
@@ -97,6 +111,11 @@
     (merge-queries {:find [?n]}
                    (attribute-value-query id :jcr.node/name ?n))))
 
+(defn property-query [parent-entity-id name]
+  (let [?p (gensym "?p")]
+    (merge-queries {:find [?p]}
+                   (property-name-query parent-entity-id ?p name))))
+
 (defn child-query [parent-entity-id childname index]
   (let [?c (gensym "?c")]
     (merge-queries {:find [?c]}
@@ -113,4 +132,12 @@
   (as-> (all-property-values db id property-name) x
     (first x)))
 
+(defn all-values [db property-id]
+  (as-> (value-query property-id) x
+    (d/q x db) 
+    (map first x)))
+
+(defn first-value [db property-id]
+  (as-> (all-values db property-id) x
+    (first x)))
 

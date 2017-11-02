@@ -84,4 +84,9 @@
     "Sets the property of this node called 'name' to the specified multiple 'values' of type 'jcr-type'.")
   )
 
-(defprotocol Property  )
+(defprotocol Property
+  
+  (value [this])
+
+  (values [this])
+)

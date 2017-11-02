@@ -13,6 +13,11 @@
    [:append-position-in-scope node-id :jcr.node/children child-id :jcr.node/position]
    ])
 
+(defn add-vals-tx [prop-id value-ids]
+  [{:db/id               prop-id
+    :jcr.property/values value-ids}
+   ])
+
 (defn add-prop-tx [node-id prop-id]
   [{:db/id               node-id
     :jcr.node/properties prop-id}
