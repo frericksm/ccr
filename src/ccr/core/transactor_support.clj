@@ -382,5 +382,4 @@
   (m/first-property-value db id "jcr:defaultPrimaryType"))
 
 (defn value-entities [db prop-id]
-  
-  )
+  (m/value-entities db prop-id))

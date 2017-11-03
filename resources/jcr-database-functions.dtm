@@ -117,9 +117,12 @@
                             [ccr.core.cnd :as cnd]
                             [ccr.core.transaction-utils :as tu]
                             [ccr.core.transactor-support :as ts]]
-                 :code (do (when (not (coll? values)) (throw (IllegalArgumentException. "Parameter 'values' must be a collection")))
-                           (let [pnt (ts/primary-type db node-id)
-                                 propdef-ids (ts/property-definition-ids db pnt)
+                 :code (do (when (nil? node-id) (throw (IllegalArgumentException. "Parameter 'node-id' must not be null")))
+                           (when (nil? name) (throw (IllegalArgumentException. "Parameter 'name' must not be null")))
+                           (when (nil? jcr-type) (throw (IllegalArgumentException. "Parameter 'jcr-type' must not be null")))
+                           (when (not (coll? values)) (throw (IllegalArgumentException. "Parameter 'values' must be a collection")))
+                           (let [pt (ts/primary-type db node-id)
+                                 propdef-ids (ts/property-definition-ids db pt)
                                  matching-propdef-id (ts/matching-propdef-id db propdef-ids name multiple? jcr-type)
                                  value-attr (cnd/jcr-value-attr jcr-type)
                                  prop-id (ts/property-by-name db node-id name)]
@@ -135,14 +138,15 @@
                                    tx))
 
                                ;; existing property
-                               (let [old-values-entities (ts/value-entities db prop-id)]
-                                 (as-> (mt/update-values old-values-entities values value-attr) x
-                                   (tu/translate-value x)
-                                   (let [value-ids (first x)
-                                         property-tx (second x)
-                                         tx (concat (tu/add-vals-tx prop-id value-ids) property-tx)]
-                                     #_(println "tx" tx)
-                                     tx))))))
+                               (let [old-values-entities (ts/value-entities db prop-id)
+                                     {:keys [retractions additions]} (mt/update-values prop-id old-values-entities values value-attr)]
+                                     (as-> additions x
+                                         (tu/translate-value x)
+                                       (let [value-ids (first x)
+                                             property-tx (second x)
+                                             tx (concat retractions (tu/add-vals-tx prop-id value-ids) property-tx)]
+                                         #_(println "tx" tx)
+                                         tx))))))
                  }
  }
  ]

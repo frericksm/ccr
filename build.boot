@@ -11,7 +11,7 @@
 
 
 (set-env!
- :source-paths #{"src" "test"}
+ :source-paths #{"src" "test" "dev"}
  :resource-paths #{"resources"}
  :dependencies '[[org.clojure/clojure "1.9.0-beta2"]
                  [org.clojure/data.zip "0.1.2"]
@@ -27,6 +27,8 @@
 ;;[com.datomic/datomic-free "0.9.5078" :exclusions [joda-time]]
 
                  [adzerk/boot-test "1.2.0" :scope "test"]
+
+                 [org.clojure/tools.namespace "0.2.4"]
                  ])
 
 (require '[adzerk.boot-test :refer :all])

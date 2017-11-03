@@ -5,29 +5,34 @@
 
 (defn update-values
   "Calculates the neccessary addition and retraction"
-  [old-value-entities new-values value-attr]
-  (let [old-values (map (fn [e] (get e value-attr)) old-value-entities)
-        add        (clojure.set/difference new-values old-values)
-        add-tx     (map (fn [v] {value-attr v}) add)
-        retract    (clojure.set/difference old-values new-values)
+  [prop-id old-value-entities new-values value-attr]
+  (let [old-values-set (into #{} (map (fn [e] (get e value-attr)) old-value-entities))
+        new-values-set (into #{} new-values)
+        add-tx     (map-indexed (fn [idx v] {value-attr v
+                                             :jcr.value/position idx}) new-values)
+        retract    (clojure.set/difference old-values-set new-values-set)
+        retract-tx-val-ent (as-> old-value-entities x
+                             (filter (fn [e] (contains? retract (get e value-attr))) x)
+                             (map (fn [e] [:db/retract prop-id :jcr.property/values (:db/id e)]) x))
         retract-tx-val-attr (as-> old-value-entities x
                               (filter (fn [e] (contains? retract (get e value-attr))) x)
                               (map (fn [e] [:db/retract (:db/id e)
                                             value-attr (get e value-attr)]) x))
         retract-tx-pos-attr (as-> old-value-entities x
                               (filter (fn [e] (contains? retract (get e value-attr))) x)
+                              (filter (fn [e] (contains? e :jcr.value/position)) x)
                               (map (fn [e] [:db/retract (:db/id e)
-                                            value-attr (get e value-attr)]) x))]
-    (as-> (concat retract-tx-val-attr retract-tx-pos-attr add-tx) x
-      (vec x)
-      #_(debug "update-values" x)
+                                            :jcr.value/position (get e :jcr.value/position)]) x))]
+    (as-> {:retractions (concat retract-tx-val-ent retract-tx-val-attr retract-tx-pos-attr)
+           :additions (vec add-tx)} x
       )))
 
 (defn property-transaction [name value-attr values]
   {:jcr.property/name name
    :jcr.property/value-attr value-attr
    :jcr.property/values (as-> values x
-                          (map (fn [v] {value-attr v}) x)
+                          (map-indexed (fn [idx v] {value-attr v
+                                                    :jcr.value/position idx}) x)
                           (vec x))})
 
 (defn node-transaction [name children properties]

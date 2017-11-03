@@ -3,10 +3,13 @@
             [clojure.instant :as instant]
             [clojure.java.io :as io]
             [ccr.core.cnd :as cnd]
+            [ccr.api.node :as n]
             [ccr.core.transaction-utils :as tu]
             [datomic.api :as d  :only [q db]]
             [net.cgrand.enlive-html :as html]
             ))
+
+(defn debug [m v] (println m v) v)
 
 (defn trans-single-value [type val]
   (case type
@@ -18,8 +21,6 @@
        "Reference" val
        "Boolean" (Boolean/valueOf val)
        "Binary" (tu/decode64 val)))
-
-
 
 (defn props [node]
   (as-> node x
@@ -43,6 +44,7 @@
 (defn node-as-entity
   "Creates the transaction from an element with tag :node"
   [position node]
+  #_(debug "node" node)
   (let [node-tx {:jcr.node/name (->> node :attrs :sv/name)
                  :jcr.node/properties (vec (props node))
                  :jcr.node/children
@@ -59,8 +61,10 @@
   [node]
   (as-> node x
         (html/select x [:> :node])
+        #_(debug "select" x)
         (map (partial node-as-entity nil) x)
-        (reduce (fn [a c] (concat a c) ) x)))
+        (vec x)
+        #_(reduce (fn [a c] (concat a c)) []  x)))
 
 (defn parse-import-file
   "Reads and parses a xml file containing the system view exported from a jcr repository"
@@ -75,6 +79,7 @@
   [file]
   (as-> file x
         (parse-import-file x)
+        #_(debug "file" x)
         (to-nested-entitites x)))
 
 (defn referenced-uuids [tx]
@@ -171,7 +176,7 @@
   The first element of that list is the tempid of the root node to be imported.
   The second element of the list contains the transaction data."
   [conn parent-node root-node-db-id tx]
-  (let [parent-new-node-link-tx (tu/add-tx (:db/id parent-node) root-node-db-id)
+  (let [parent-new-node-link-tx (tu/add-tx (Long/valueOf (n/identifier parent-node)) root-node-db-id)
         full-tx (concat parent-new-node-link-tx tx)]
     (d/transact-async conn full-tx)))
 
@@ -194,6 +199,6 @@ The second element of the list contains the transaction data."
   "Importiert den Inhalt der XML-Datei (System-View) als Child der parent-node.
   Liefert eine session, die den veränderten Zustand berücksichtigt"
   [session parent-node file]
-  (let [conn (get-in session [:repository :connection])
+  (let [conn (get-in session [:connection])
         [root-node-db-id tx] (import-tx file)]
     (load-tx conn  parent-node root-node-db-id tx)))

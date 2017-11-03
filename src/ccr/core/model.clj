@@ -111,6 +111,13 @@
     (merge-queries {:find [?n]}
                    (attribute-value-query id :jcr.node/name ?n))))
 
+(defn property-value-attribute-query [prop-id]
+  (let [?v (gensym "?v")]
+    (merge-queries {:find [?v]}
+                   (attribute-value-query prop-id
+                                          :jcr.property/value-attr
+                                          ?v))))
+
 (defn property-query [parent-entity-id name]
   (let [?p (gensym "?p")]
     (merge-queries {:find [?p]}
@@ -141,3 +148,29 @@
   (as-> (all-values db property-id) x
     (first x)))
 
+
+(defn where-value-entity 
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.property ?e and the value of :jcr.value entity of that property."
+  [?p ?value]
+  {:where [[?p :jcr.property/values ?value]]})
+
+(defn value-entities
+  "Returns the value entities of the property with prop-id"
+  [db prop-id]
+  (as-> (let [?value (symbol "?value")]
+          (merge-queries '{:find [(pull ?value [*])]}
+                         (where-value-entity prop-id ?value))) x
+    (d/q x db)
+    (map first x)
+    (sort-by :jcr.value/position x)))
+
+
+(defn values
+  "Returns the value entities of the property with prop-id"
+  [db prop-id]
+  (let [value-attr (as-> (property-value-attribute-query prop-id) x
+                     (d/q x db)
+                     (map first x)
+                     (first x))]
+    (as-> (value-entities db prop-id) x
+      (map (fn [e] (get e value-attr)) x))))

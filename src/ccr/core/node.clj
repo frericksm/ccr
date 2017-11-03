@@ -52,7 +52,8 @@
   
   (definition [this])
   
-  (identifier [this])
+  (identifier [this]
+    (str id))
   
   (index [this])
   
@@ -191,7 +192,7 @@
 
   (values [this]
     (let [db (tr/current-db session)]
-      (m/all-values db id))
+      (m/values db id))
     )
   )
 
