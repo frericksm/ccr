@@ -65,7 +65,10 @@
         (new-node session x))))
 
 
-  (nodes [this])
+  (nodes [this]
+    (let [db (tr/current-db session)]
+      (as-> (ts/nodes db id) x
+        (map (partial new-node session) x))))
 
   (nodes [this namePattern])
 
@@ -76,9 +79,13 @@
   (property [this relPath]
     (let [db (tr/current-db session)]
       (as-> (ts/item-by-path db id (p/to-path relPath)) x
+        (debug "item-by-path" x)
         (new-property session x))))
 
-  (properties [this])  
+  (properties [this]
+    (let [db (tr/current-db session)]
+      (as-> (ts/properties db id) x
+        (map (partial new-property session) x))))  
   
   (set-property-value [this name value jcr-type]
     ;; transaction function :set-property
@@ -152,7 +159,8 @@
 
   (item-name [this]
     (let [db (tr/current-db session)]
-      (as-> (m/node-name-query id) x
+      (as-> (m/property-name-query (debug "id" id)) x
+        (debug "q" x)
         (d/q x db)
         (map first x)
         (first x))))

@@ -101,7 +101,7 @@
             (recur new_h)))))))
 
 (defn property-by-name [db id property-name]
-  (as-> (m/property-by-name-query id property-name) x
+  (as-> (m/property-by-name id property-name) x
     (d/q x db) 
     (map first x)
     (first x)))
@@ -186,7 +186,7 @@
 (defn ^:private property-id-by-name
   "Returns the id of the child node with 'name' of node with parent-node-id"
   [db parent-node-id name]
-  (as-> (m/property-query parent-node-id name) x
+  (as-> (m/property-by-name parent-node-id name) x
     (d/q x db)
     (map first x)
     (first x)))
@@ -194,7 +194,7 @@
 (defn ^:private childnode-id-by-name
   "Returns the id of the child node with 'name' of node with parent-node-id"
   [db parent-node-id name]
-  (let [g (re-matches  #"([^/:\[\]\|\*]+)(\[(\d+)\])?" name) ;; split basename and optional index
+  (let [g (re-matches  #"([^/\[\]\|\*]+)(\[(\d+)\])?" name) ;; split basename and optional index
         basename (second g)
         index (if (nil? (nth g 3)) 0 (Integer/parseInt (nth g 3)))]
     (as-> (m/child-query parent-node-id basename index) x
@@ -383,3 +383,13 @@
 
 (defn value-entities [db prop-id]
   (m/value-entities db prop-id))
+
+(defn nodes [db node-id]
+  (as-> (m/all-child-nodes node-id) x
+    (d/q x db) 
+    (map first x)))
+
+(defn properties [db node-id]
+  (as-> (m/all-properties node-id) x
+    (d/q x db) 
+    (map first x)))

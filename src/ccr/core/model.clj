@@ -17,7 +17,7 @@
   [?e ?index]
   {:where [[?e :jcr.node/position ?index]]})
 
-(defn property-name-query 
+(defn property-by-name-query 
   "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e with its :jcr.property entity named ?property-name"
   [?e ?p ?property-name]
   {:where [[?e :jcr.node/properties ?p]
@@ -54,8 +54,13 @@
   [?e ?c]
   {:where [[?e :jcr.node/children ?c]]})
 
+(defn property-query 
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its property entities ?p"
+  [?e ?p]
+  {:where [[?e :jcr.node/properties ?p]]})
+
 (defn ^:private child-node-name-query 
-  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its childnode entities ?c and the childnodes name ?name"
+  "Returns a partial datomic query in map form containing only a where clause that interconnects the :jcr.node entity ?e and its property entities ?c and the childnodes name ?name"
   [?e ?c ?name]
   {:where [[?e :jcr.node/children ?c]
            [?c :jcr.node/name ?name]]})
@@ -96,20 +101,30 @@
     (merge-queries {:find [?e]}
                    (child-node-query ?e child-entity-id))))
 
-(defn property-by-name-query [node-id property-name]
+(defn property-by-name [node-id property-name]
   (let [?p (gensym "?p")]  
     (merge-queries {:find [?p]}
-                   (property-name-query node-id ?p property-name))))
+                   (property-by-name-query node-id ?p property-name))))
 
 (defn all-child-nodes [id]
   (let [?c (gensym "?c")]
     (merge-queries {:find [?c]}
                    (child-node-query id ?c))))
 
+(defn all-properties [id]
+  (let [?p (gensym "?p")]
+    (merge-queries {:find [?p]}
+                   (property-query id ?p))))
+
 (defn node-name-query [id]
   (let [?n (gensym "?n")]
     (merge-queries {:find [?n]}
                    (attribute-value-query id :jcr.node/name ?n))))
+
+(defn property-name-query [id]
+  (let [?n (gensym "?n")]
+    (merge-queries {:find [?n]}
+                   (attribute-value-query id :jcr.property/name ?n))))
 
 (defn property-value-attribute-query [prop-id]
   (let [?v (gensym "?v")]
@@ -118,10 +133,10 @@
                                           :jcr.property/value-attr
                                           ?v))))
 
-(defn property-query [parent-entity-id name]
+#_(defn property-query [parent-entity-id name]
   (let [?p (gensym "?p")]
     (merge-queries {:find [?p]}
-                   (property-name-query parent-entity-id ?p name))))
+                   (property-by-name-query parent-entity-id ?p name))))
 
 (defn child-query [parent-entity-id childname index]
   (let [?c (gensym "?c")]
