@@ -196,7 +196,7 @@
   [db parent-node-id name]
   (let [g (re-matches  #"([^/\[\]\|\*]+)(\[(\d+)\])?" name) ;; split basename and optional index
         basename (second g)
-        index (if (nil? (nth g 3)) 0 (Integer/parseInt (nth g 3)))]
+        index (if (nil? (nth g 3)) 0 (dec (Integer/parseInt (nth g 3))))]
     (as-> (m/child-query parent-node-id basename index) x
       (d/q x db)
       (map first x)
@@ -214,10 +214,10 @@
         node-id
         (let [segment (first path-segments)
               new_path-segments (rest path-segments)
-              maybe-node-id (childnode-id-by-name db node-id segment) 
-              new_node-id (if (and (nil? maybe-node-id) (empty? new_path-segments))
-                            (property-id-by-name db node-id segment)
-                            (childnode-id-by-name db node-id segment))]
+              new_node-id (as-> (childnode-id-by-name db node-id segment) x
+                            (if (and (nil? x) (empty? new_path-segments))
+                              (property-id-by-name db node-id segment)
+                              x))]
           (recur new_node-id
                  new_path-segments))))))
 
