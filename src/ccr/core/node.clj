@@ -79,7 +79,6 @@
   (property [this relPath]
     (let [db (tr/current-db session)]
       (as-> (ts/item-by-path db id (p/to-path relPath)) x
-        (debug "item-by-path" x)
         (new-property session x))))
 
   (properties [this]
