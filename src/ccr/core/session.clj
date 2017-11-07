@@ -24,7 +24,8 @@
                      ffirst)]
       (ccr.core.node/new-node this eid)))
 
-  (save [this])
+  (save [this]
+    (tr/save this))
 
   (workspace [this] (w/workspace this workspace-name)))
 
