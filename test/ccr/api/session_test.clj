@@ -72,4 +72,23 @@
                         (napi/values x))]
                v1)) "updating a property on a node of type nt:unstructed")
 
-      )))
+      ))
+
+
+(testing "Save session changes"
+    (let [r (repository/repository {"ccr.datomic.uri" "datomic:mem://jcr"})
+          s (rapi/login r)
+          rn (sapi/root-node s)
+          node-a (napi/add-node rn "A") ]
+      
+      (is (= "value1" 
+             (do (napi/set-property-value node-a "prop1" "value1" "String")
+                 (sapi/save s)
+                 (let [s (rapi/login r)
+                       rn (sapi/root-node s)
+                       node-a (napi/add-node rn "A")
+                       v1 (as-> (napi/property node-a "prop1") x
+                            (napi/value x))]
+                   v1))) "new property persisted")
+      ))
+  )
