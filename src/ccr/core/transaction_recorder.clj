@@ -58,18 +58,34 @@
       state
       (recur (deref transaction-recorder-atom)))))
 
+(defn ^:private replace-tempids-in [id2temp tx]
+  (condp = (first tx) 
+      :add-node     (as-> tx x
+                      (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
+                      (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
+      :set-property (as-> tx x
+                      (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
+                      (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
+      ))
+
 (defn ^:private tempids-from [tx]
-  (let [[tx-fn eid] tx]
-    (vector eid)))
+  (condp = (first tx) 
+      :add-node     (vector (nth tx 1) (nth tx 2))
+      :set-property (vector (nth tx 1) (nth tx 2))
+      ))
 
 (defn intermediate-db-id-to-tempid-map [recording]
   (as-> recording x
     (map (fn [r]
            (let [tempids (->> r :tx-result :tempids )
                  db      (->> r :tx-result :db-after )
-                 ids     (tempids-from (get r :tx))]
-             (reduce (fn [a v] (assoc a
-                                      (datomic/resolve-tempid db tempids v) v))
+                 ids     (as-> (get r :tx) x
+                           (map tempids-from x)
+                           (apply concat x))]
+             (reduce (fn [a v] (let [intermediate-db-id (datomic/resolve-tempid db tempids v)]
+                                 (if (not (nil? intermediate-db-id))
+                                   (assoc a intermediate-db-id v)
+                                   a)))
                      {} ids))) x)
     (apply merge x)
     ))
@@ -90,21 +106,23 @@
 
 
 ;; eid-n  
-(defn ^:private replace-temp-ids [{:keys [tx-result tx]}]
-  (let [{:keys [db-before tempids]} tx-result
-        [tx-fn eid] tx
-        new-eid (datomic/resolve-tempid )]
-    )
-  
-  )
+(defn ^:private  replace-temp-ids
+  "Ersetzt in der Transaktion entity-ids durch temp-ids, falls die entity-id nicht  "
+  [id2temp txs]
+  (as-> txs x
+    (map (fn [tx] (replace-tempids-in id2temp tx)) x)
+    (vec x)))
 
 (defn save
   "Commits the collected transactions against the connection"
   [session]
   (if-let [state (reset-transaction-recorder-atom (:transaction-recorder-atom session))]
-    (let [id2temp (intermediate-db-id-to-tempid-map state)])
-    (as-> state x
-      (reverse x)
-      (map :tx x)
-      (map replace-temp-ids x)
-      (debug "save" x))))
+    (let [id2temp (intermediate-db-id-to-tempid-map state)]
+      (as-> state x
+        (map :tx x)
+        (reverse x)
+        (map (partial replace-temp-ids id2temp) x)
+        (apply concat x)
+        (vec x)
+        (debug "tx" x)
+        (datomic/transact (:conn session) x)))))

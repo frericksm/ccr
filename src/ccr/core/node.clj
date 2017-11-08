@@ -1,10 +1,10 @@
 (ns ccr.core.node
   (:require [ccr.api.node]
-            [ccr.core.transaction-recorder :as tr]
-            [ccr.core.model :as m]
-            [ccr.core.transactor-support :as ts]
-            [ccr.core.path :as p]
-            [datomic.api :as d  :only [q db pull pull-many transact]]
+            [ccr.core.transaction-recorder :as transaction-recorder]
+            [ccr.core.model :as model]
+            [ccr.core.transactor-support :as transactor-support]
+            [ccr.core.path :as path]
+            [datomic.api :as datomic]
             ))
 
 (defn debug [m x] (println m x) x)
@@ -17,18 +17,18 @@
 (defn find-new-child-id 
   "Returns the id of the newly added child to node with 'node-id' at rel-path"
   [tx-result node-id rel-path]
-  (let [segments (p/to-path rel-path)
+  (let [segments (path/to-path rel-path)
         parent-segments (drop-last segments)
         basename (last segments)
         
         db-before (:db-before tx-result)
         db-after  (:db-after tx-result)
         
-        parent-node-id (ts/node-by-path db-before node-id parent-segments)
-        child-nodes-before (->> (d/q (m/all-child-nodes parent-node-id) db-before)
+        parent-node-id (transactor-support/node-by-path db-before node-id parent-segments)
+        child-nodes-before (->> (datomic/q (model/all-child-nodes parent-node-id) db-before)
                                 (map first)
                                 (set))
-        child-nodes-after (->> (d/q (m/all-child-nodes parent-node-id) db-after)
+        child-nodes-after (->> (datomic/q (model/all-child-nodes parent-node-id) db-after)
                                (map first)
                                (set))
         diff (clojure.set/difference child-nodes-after child-nodes-before)]
@@ -36,7 +36,7 @@
       (first diff)
       (throw (IllegalStateException. "No or more than one childnode added!")))
     )
-)
+  )
 
 (deftype NodeImpl [session id]
   ccr.api.node/Node
@@ -45,8 +45,8 @@
     (ccr.api.node/add-node this relPath nil))
 
   (add-node [this relPath primaryNodeTypeName]
-    (as-> [[:add-node id relPath primaryNodeTypeName]] x ;; transaction function :add-node
-      (tr/record-tx session x)
+    (as-> [[:add-node id (datomic/tempid :db.part/user) relPath primaryNodeTypeName]] x ;; transaction function :add-node
+      (transaction-recorder/record-tx session x)
       (find-new-child-id (:tx-result x) id relPath)
       (new-node session x)))
   
@@ -60,14 +60,14 @@
   (mixinNodeTypes [this])
 
   (node [this relPath]
-    (let [db (tr/current-db session)]
-      (as-> (ts/node-by-path db id (p/to-path relPath)) x
+    (let [db (transaction-recorder/current-db session)]
+      (as-> (transactor-support/node-by-path db id (path/to-path relPath)) x
         (new-node session x))))
 
 
   (nodes [this]
-    (let [db (tr/current-db session)]
-      (as-> (ts/nodes db id) x
+    (let [db (transaction-recorder/current-db session)]
+      (as-> (transactor-support/nodes db id) x
         (map (partial new-node session) x))))
 
   (nodes [this namePattern])
@@ -77,26 +77,26 @@
   (primary-nodetype [this])
 
   (property [this relPath]
-    (let [db (tr/current-db session)]
-      (as-> (ts/item-by-path db id (p/to-path relPath)) x
+    (let [db (transaction-recorder/current-db session)]
+      (as-> (transactor-support/item-by-path db id (path/to-path relPath)) x
         (new-property session x))))
 
   (properties [this]
-    (let [db (tr/current-db session)]
-      (as-> (ts/properties db id) x
+    (let [db (transaction-recorder/current-db session)]
+      (as-> (transactor-support/properties db id) x
         (map (partial new-property session) x))))  
   
   (set-property-value [this name value jcr-type]
     ;; transaction function :set-property
-    (as-> [[:set-property id name [value] jcr-type false]] x 
-      (tr/record-tx session x)
+    (as-> [[:set-property id (datomic/tempid :db.part/user) name [value] jcr-type false]] x 
+      (transaction-recorder/record-tx session x)
       (find-property (:tx-result x) name)
       (new-property session x)))
 
   (set-property-values [this name values jcr-type]
     ;; transaction function :set-property
-    (as-> [[:set-property id name values jcr-type true]] x 
-      (tr/record-tx session x)
+    (as-> [[:set-property id (datomic/tempid :db.part/user) name values jcr-type true]] x 
+      (transaction-recorder/record-tx session x)
       (find-property (:tx-result x) name)
       (new-property session x)))
 
@@ -107,9 +107,9 @@
   (depth [this])
 
   (item-name [this]
-    (let [db (tr/current-db session)]
-      (as-> (m/node-name-query id) x
-        (d/q x db)
+    (let [db (transaction-recorder/current-db session)]
+      (as-> (model/node-name-query id) x
+        (datomic/q x db)
         (map first x)
         (first x))))
  
@@ -157,10 +157,10 @@
   (depth [this])
 
   (item-name [this]
-    (let [db (tr/current-db session)]
-      (as-> (m/property-name-query (debug "id" id)) x
+    (let [db (transaction-recorder/current-db session)]
+      (as-> (model/property-name-query (debug "id" id)) x
         (debug "q" x)
-        (d/q x db)
+        (datomic/q x db)
         (map first x)
         (first x))))
  
@@ -193,13 +193,13 @@
     )
   
   (value [this]
-    (let [db (tr/current-db session)]
-      (m/first-value db id))
+    (let [db (transaction-recorder/current-db session)]
+      (model/first-value db id))
     )
 
   (values [this]
-    (let [db (tr/current-db session)]
-      (m/values db id))
+    (let [db (transaction-recorder/current-db session)]
+      (model/values db id))
     )
   )
 

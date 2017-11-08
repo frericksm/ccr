@@ -270,7 +270,7 @@
         (html/select x [:node_type_def])
         (map nodetype x)
         (vec x)
-        (tu/translate-value x)
+        (tu/translate-value2 x nil)
         (second x)))
 
 (defn ^:private parse-cnd-resource 

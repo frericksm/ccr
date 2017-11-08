@@ -23,8 +23,34 @@
     :jcr.node/properties prop-id}
    ])
 
+
+(declare translate-value2)
+
+(defn translate-values2 [values]
+  (let [mapped (map translate-value2 values)]
+    [(reduce conj [] (map first mapped))
+     (reduce concat '() (map second mapped))]))
+
+(defn translate-value2
+  ([v temp-id-for-root-map]
+   ;; Returns a vector of two elements:
+   ;; 1. The replacement for v (new :db/id value if v is a map,
+   ;;    a vector with maps replaced by :db/id's if v is a vector, etc.)
+   ;; 2. The sequence of maps which were replaced by their new :db/id's,
+   ;;    each map already contains the :db/id.
+   (cond (map? v) (let [id (or temp-id-for-root-map (d/tempid :db.part/user))
+                        translated-vals (translate-values2 (vals v))
+                        translated-map (zipmap (keys v)
+                                               (first translated-vals))]
+                    [id (cons (assoc translated-map :db/id id)
+                              (second translated-vals))])
+         (vector? v) (translate-values2 v)
+         :else [v nil]))
+  ([v]
+   (translate-value2 v nil)))
+
 ;; https://github.com/avodonosov/datomic-helpers/blob/master/src/datomic_helpers.clj
-(defn translate-value [v]
+#_(defn translate-value [v]
   ;; Returns a vector of two elements:
   ;; 1. The replacement for V (new :db/id value if V is a map,
   ;;    a vector with maps replaced by :db/id's if V is a vector, etc.)
@@ -43,8 +69,8 @@
           (vector? v) (translate-values v)
           :else [v nil])))
  
-(defn to-transaction [data-map]
-  (vec (second (translate-value data-map))))
+(defn to-transaction [data-map temp-id]
+  (vec (second (translate-value2 data-map temp-id))))
 
 
 (defn encode64 [ba]

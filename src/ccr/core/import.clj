@@ -145,7 +145,7 @@
 (defn import-tx
   "Liefert die Transaction mit der das file importiert wird"
   [file]
-  (let [tx-data (tu/translate-value (nested-entities file))
+  (let [tx-data (tu/translate-value2 (nested-entities file) nil)
         import-root-db-id (first tx-data)
         tx-data-with-refs-adjusted (as-> (second tx-data) x
                                          (adjust-refs x))]

@@ -78,7 +78,7 @@
   :db/ident :add-node
   :db/doc "Adds a childnode named 'basename' of nodetype 'primary-node-type' to the :jcr.node with entity-id 'parent-node-id'"
   :db/fn #db/fn {:lang "clojure"
-                 :params [db node-id rel-path primary-node-type]
+                 :params [db node-id child-id rel-path primary-node-type]
                  :requires [[ccr.core.model-trans :as mt]
                             [ccr.core.path :as p]
                             [ccr.core.transaction-utils :as tu]
@@ -99,9 +99,8 @@
                          (if (nil? new-primary-node-type) (throw (IllegalArgumentException. "no primary nodetype specified")))
                          (as-> (mt/node-transaction basename autocreated-childnodes
                                                     autocreated-properties) x
-                           (tu/translate-value x)
-                           (let [child-id (first x)
-                                 child-node-tx (second x)
+                           (tu/translate-value2 x child-id)
+                           (let [child-node-tx (second x)
                                  tx (concat (tu/add-tx parent-node-id child-id) child-node-tx)]
                              #_(println "tx" tx)
                              tx
@@ -111,7 +110,7 @@
   :db/ident :set-property
   :db/doc "Sets the property of the node (with node-id) called name to the specified values. Even if this property is single-valued the parameter values has to be a coll"
   :db/fn #db/fn {:lang "clojure"
-                 :params [db node-id name values jcr-type multiple?]
+                 :params [db node-id property-id name values jcr-type multiple?]
                  :requires [[ccr.core.model-trans :as mt]
                             [ccr.core.path :as p]
                             [ccr.core.cnd :as cnd]
@@ -130,8 +129,8 @@
 
                                ;; new property
                                (as-> (mt/property-transaction name value-attr values) x
-                                 (tu/translate-value x)
-                                 (let [property-id (first x)
+                                 (tu/translate-value2 x property-id)
+                                 (let [;;property-id (first x)
                                        property-tx (second x)
                                        tx (concat (tu/add-prop-tx node-id property-id) property-tx)]
                                    #_(println "tx" tx)
@@ -141,7 +140,7 @@
                                (let [old-values-entities (ts/value-entities db prop-id)
                                      {:keys [retractions additions]} (mt/update-values prop-id old-values-entities values value-attr)]
                                      (as-> additions x
-                                         (tu/translate-value x)
+                                         (tu/translate-value2 x nil)
                                        (let [value-ids (first x)
                                              property-tx (second x)
                                              tx (concat retractions (tu/add-vals-tx prop-id value-ids) property-tx)]
