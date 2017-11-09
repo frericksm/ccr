@@ -13,11 +13,11 @@
                              ;; The full set of children
                              (get (datomic.api/entity db scope-id) scope-attr) x
                            ;; Get only the numerical position attr
-                           (map pos-attr x)
-                           ;; Get the highest one
-                           (reduce max 0 x)
-                           ;; And increment by one
-                           (inc x))]]}}
+                             (map pos-attr x)
+                             ;; Get the highest one
+                             (reduce max 0 x)
+                             ;; And increment by one
+                             (inc x))]]}}
  
  
  {:db/id #db/id[:db.part/user]
@@ -32,11 +32,11 @@
                             (get (datomic.api/entity db scope-id)
                                  scope-attr) x
                           ;; Sort them by the numerical sorted-attr
-                          (sort-by sorted-attr x)
-                          ;; Get the entity IDs
-                          (map :db/id x)
-                          ;; Remove the retracted entity from the list
-                          (filter (partial not= retracted-eid)) x))}}
+                            (sort-by sorted-attr x)
+                            ;; Get the entity IDs
+                            (map :db/id x)
+                            ;; Remove the retracted entity from the list
+                            (filter (partial not= retracted-eid)) x))}}
  
  {:db/id #db/id[:db.part/user]
   :db/ident :set-position-in-scope
@@ -106,7 +106,7 @@
                              tx
                              )))}}
 
-{:db/id #db/id[:db.part/user]
+ {:db/id #db/id[:db.part/user]
   :db/ident :set-property
   :db/doc "Sets the property of the node (with node-id) called name to the specified values. Even if this property is single-valued the parameter values has to be a coll"
   :db/fn #db/fn {:lang "clojure"
@@ -130,7 +130,7 @@
                                ;; new property
                                (as-> (mt/property-transaction name value-attr values) x
                                  (tu/translate-value2 x property-id)
-                                 (let [;;property-id (first x)
+                                 (let [ ;;property-id (first x)
                                        property-tx (second x)
                                        tx (concat (tu/add-prop-tx node-id property-id) property-tx)]
                                    #_(println "tx" tx)
@@ -139,13 +139,45 @@
                                ;; existing property
                                (let [old-values-entities (ts/value-entities db prop-id)
                                      {:keys [retractions additions]} (mt/update-values prop-id old-values-entities values value-attr)]
-                                     (as-> additions x
-                                         (tu/translate-value2 x nil)
-                                       (let [value-ids (first x)
-                                             property-tx (second x)
-                                             tx (concat retractions (tu/add-vals-tx prop-id value-ids) property-tx)]
-                                         #_(println "tx" tx)
-                                         tx))))))
+                                 (as-> additions x
+                                   (tu/translate-value2 x nil)
+                                   (let [value-ids (first x)
+                                         property-tx (second x)
+                                         tx (concat retractions (tu/add-vals-tx prop-id value-ids) property-tx)]
+                                     #_(println "tx" tx)
+                                     tx))))))
                  }
- }
+  }
+
+
+ {:db/id #db/id[:db.part/user]
+  :db/ident :save
+  :db/doc "Save changes made in a session to the database by providing the transaction to be transacted against the connection"
+  :db/fn #db/fn {:lang "clojure"
+                 :params [db transactions]
+                 :requires [[datomic.api :as datomic]
+                            [ccr.core.model-trans :as model-trans]
+                            [ccr.core.path :as path]
+                            [ccr.core.cnd :as cnd]
+                            [ccr.core.transaction-utils :as transaction-utils]
+                            [ccr.core.transactor-support :as transactor-support]]
+                 :code (loop [tx (first transactions)
+                              rest-transactions  (rest transactions)
+                              final-tx nil
+                              tx-results nil]
+                         (if (nil? tx)
+                           final-tx
+                           (let [current-db (or (get-in (first tx-results) [:tx-result :db-after]) db)
+                                 tx-fn (get (datomic/entity current-db (first tx)) :db/fn)
+                                 temp-tx (apply tx-fn (cons current-db (rest tx)))
+                                 result (datomic/with current-db temp-tx) 
+                                 new-tx-results (cons result tx-results)
+                                 new-final-tx (cons temp-tx final-tx)]
+                             (println "temp-tx" temp-tx )
+                             (recur (first rest-transactions)
+                                    (rest rest-transactions)
+                                    new-final-tx
+                                    new-tx-results))))
+                 }
+  } 
  ]

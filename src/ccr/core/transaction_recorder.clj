@@ -27,8 +27,7 @@
   :tx (transaction using entity-ids from (get-in m [:tx-result :db-before])"
   [conn transaction-recorder-atom tx]
   (swap! transaction-recorder-atom
-         (fn [current-value
-              t]
+         (fn [current-value t]
            (let [db (calc-current-db conn current-value)
                  new-transact-result (datomic/with db t)]
              (cons {:tx-result new-transact-result
@@ -58,7 +57,7 @@
       state
       (recur (deref transaction-recorder-atom)))))
 
-(defn ^:private replace-tempids-in [id2temp tx]
+(defn ^:private replace-entity-ids-in [id2temp tx]
   (condp = (first tx) 
       :add-node     (as-> tx x
                       (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
@@ -106,11 +105,11 @@
 
 
 ;; eid-n  
-(defn ^:private  replace-temp-ids
+(defn ^:private  replace-entity-ids
   "Ersetzt in der Transaktion entity-ids durch temp-ids, falls die entity-id nicht  "
   [id2temp txs]
   (as-> txs x
-    (map (fn [tx] (replace-tempids-in id2temp tx)) x)
+    (map (fn [tx] (replace-entity-ids-in id2temp tx)) x)
     (vec x)))
 
 (defn save
@@ -119,10 +118,12 @@
   (if-let [state (reset-transaction-recorder-atom (:transaction-recorder-atom session))]
     (let [id2temp (intermediate-db-id-to-tempid-map state)]
       (as-> state x
-        (map :tx x)
-        (reverse x)
-        (map (partial replace-temp-ids id2temp) x)
-        (apply concat x)
-        (vec x)
+        (map :tx x) ;; enthält die letzte Transtion als erstes Element
+        (reverse x) ;; daher die Reihenfolge umdrehen
+        (map (partial replace-entity-ids id2temp) x) ;; Die entity-ids wieder durch die ursprünglichen Temp-Ids ersetzen
+        (apply concat x) ;; zu einer Liste von Transaktionen zusammenhängen
+        (vec x)  ;; in einen Vektor umwandeln
+        (vector :save x)   ;; die tx-function :save aufrufen
+        (vector x) ;; in einen Vector packen  
         (debug "tx" x)
         (datomic/transact (:conn session) x)))))
