@@ -57,7 +57,7 @@
       state
       (recur (deref transaction-recorder-atom)))))
 
-(defn ^:private replace-entity-ids-in [id2temp tx]
+(defn replace-entity-ids-in [id2temp tx]
   (condp = (first tx) 
       :add-node     (as-> tx x
                       (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
@@ -73,21 +73,24 @@
       :set-property (vector (nth tx 1) (nth tx 2))
       ))
 
-(defn intermediate-db-id-to-tempid-map [recording]
-  (as-> recording x
-    (map (fn [r]
-           (let [tempids (->> r :tx-result :tempids )
-                 db      (->> r :tx-result :db-after )
-                 ids     (as-> (get r :tx) x
-                           (map tempids-from x)
-                           (apply concat x))]
-             (reduce (fn [a v] (let [intermediate-db-id (datomic/resolve-tempid db tempids v)]
-                                 (if (not (nil? intermediate-db-id))
-                                   (assoc a intermediate-db-id v)
-                                   a)))
-                     {} ids))) x)
-    (apply merge x)
-    ))
+(defn intermediate-db-id-to-tempid-map 
+  ([recording]
+   (intermediate-db-id-to-tempid-map  recording {}))
+  ([recording to-extend]
+   (as-> recording x
+     (map (fn [r]
+            (let [tempids (->> r :tx-result :tempids )
+                  db      (->> r :tx-result :db-after )
+                  ids     (as-> (get r :tx) x
+                            (map tempids-from x)
+                            (apply concat x))]
+              (reduce (fn [a v] (let [intermediate-db-id (datomic/resolve-tempid db tempids v)]
+                                  (if (not (nil? intermediate-db-id))
+                                    (assoc a intermediate-db-id v)
+                                    a)))
+                      to-extend ids))) x)
+     (apply merge x)
+     )))
 
 #_(defn save-recorded-transactions [session]
   (let [recording-value @(:recording session)
