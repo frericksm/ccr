@@ -7,9 +7,12 @@
             [ccr.core.transaction-recorder :as transaction-recorder]
             [ccr.core.transactor-support :as transactor-support]))
 
+(defn debug [m x] (println m x) x)
+
 (defn add-node
   "Adds a childnode named 'basename' of nodetype 'primary-node-type' to the :jcr.node with entity-id 'parent-node-id'"
   [db node-id child-id rel-path primary-node-type] 
+  #_(debug "add-node" (str node-id child-id rel-path primary-node-type))
   (let [segments (path/to-path rel-path)
         parent-segments (drop-last segments)
         basename (last segments)
@@ -40,11 +43,11 @@
       (when (nil? name) (throw (IllegalArgumentException. "Parameter 'name' must not be null")))
       (when (nil? jcr-type) (throw (IllegalArgumentException. "Parameter 'jcr-type' must not be null")))
       (when (not (coll? values)) (throw (IllegalArgumentException. "Parameter 'values' must be a collection")))
-      (let [pt (transaction-support/primary-type db node-id)
-            propdef-ids (transaction-support/property-definition-ids db pt)
-            matching-propdef-id (transaction-support/matching-propdef-id db propdef-ids name multiple? jcr-type)
+      (let [pt (transactor-support/primary-type db node-id)
+            propdef-ids (transactor-support/property-definition-ids db pt)
+            matching-propdef-id (transactor-support/matching-propdef-id db propdef-ids name multiple? jcr-type)
             value-attr (cnd/jcr-value-attr jcr-type)
-            prop-id (transaction-support/property-by-name db node-id name)]
+            prop-id (transactor-support/property-by-name db node-id name)]
         (if (nil? prop-id)
 
           ;; new property
@@ -57,7 +60,7 @@
               tx))
 
           ;; existing property
-          (let [old-values-entities (transaction-support/value-entities db prop-id)
+          (let [old-values-entities (transactor-support/value-entities db prop-id)
                 {:keys [retractions additions]} (model-trans/update-values prop-id old-values-entities values value-attr)]
             (as-> additions x
               (transaction-utils/translate-value2 x nil)
@@ -89,10 +92,14 @@
 (defn replace-ids [idmap tx]
   (as-> tx x
     (map (fn [tx-segment]
+           #_(debug "tx-segment" tx-segment)
+           #_(debug "tx-segment-type" (type tx-segment))
+           #_(debug "tx-segment-coll?" (coll? tx-segment))
            (cond
+             (instance? datomic.db.DbId tx-segment)  (get idmap tx-segment tx-segment)
              (map? tx-segment) (replace-ids-in-map idmap tx-segment)
              (coll? tx-segment) (replace-ids-in-coll idmap tx-segment)
-             true (throw (IllegalArgumentException. (format "replace-ids: unexptected type of %s" tx-segment))))))))
+             true (get idmap tx-segment tx-segment))) x)))
 
 
 #_(condp = (first tx) 
@@ -107,24 +114,24 @@
 (defn ^:private detempidify
   "Replace all tempids in the datomic transaction (vector) 'tx' by entity-ids from the bijective map 'id2temp'"
   [id2temp tx]
-  (let [temp2id (reverse id2temp)]
+  (let [temp2id (clojure.set/map-invert id2temp)]
     (as-> tx x
-      (map  (partial transaction-recorder/replace-ids temp2id) x)
-      (vec x)))
-  )
+      (replace-ids temp2id x)
+      (vec x))))
 
 (defn ^:private tempidify
   "Replace all entity-ids in the datomic transaction (vector) 'tx' by tempids from the bijective map 'id2temp'"
   [id2temp tx]
+  (debug "tempidify" tx)
   (as-> tx x
-    (map  (partial transaction-recorder/replace-ids id2temp) x)
+    (map  (partial replace-ids id2temp) x)
     (vec x)))
 
 (defn save 
   "Save changes made in a session to the database by providing the transaction to be transacted against the connection"
   [db transactions]
-  (loop [tx (first transactions)
-         rest-transactions  (rest transactions)
+  (loop [tx (debug "first" (first transactions))
+         rest-transactions (debug "rest" (rest transactions))
          final-tx nil
          tx-results nil
          id2temp nil]
@@ -133,10 +140,11 @@
       (let [current-db (or (get-in (first tx-results) [:tx-result :db-after]) db)
             tx-fn (get (datomic/entity current-db (first tx)) :db/fn)
             sub-tx (detempidify id2temp (rest tx))
+            ;;_  (debug "sub-tx" (type sub-tx))
             temp-tx (apply tx-fn (cons current-db sub-tx))
             result (datomic/with current-db temp-tx) 
             new-tx-results (cons result tx-results)
-            new-id2temp (transactor-support/intermediate-db-id-to-tempid-map [result] id2temp)
+            new-id2temp (transaction-recorder/intermediate-db-id-to-tempid-map [result] id2temp)
             new-final-tx (cons (tempidify new-id2temp temp-tx) final-tx)]
         (println "temp-tx" temp-tx )
         (recur (first rest-transactions)
