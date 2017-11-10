@@ -137,7 +137,8 @@
          id2temp nil]
     (if (nil? tx)
       final-tx
-      (let [current-db (or (get-in (first tx-results) [:tx-result :db-after]) db)
+      (let [db-after (debug "db-after" (get (debug "first" (first tx-results)) :db-after))
+            current-db (or db-after db-after db)
             tx-fn (get (datomic/entity current-db (first tx)) :db/fn)
             sub-tx (detempidify id2temp (rest tx))
             ;;_  (debug "sub-tx" (type sub-tx))
