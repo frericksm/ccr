@@ -158,8 +158,8 @@
 
   (item-name [this]
     (let [db (transaction-recorder/current-db session)]
-      (as-> (model/property-name-query (debug "id" id)) x
-        (debug "q" x)
+      (as-> (model/property-name-query id) x
+        #_(debug "q" x)
         (datomic/q x db)
         (map first x)
         (first x))))

@@ -71,88 +71,34 @@
                 tx))))))
   )
 
-(def entitity-attributes #{:db/id :jcr.value/reference :jcr.node/children :jcr.node/properties :jcr.property/values})
-
-(defn ^:private replace-ids-in-map [idmap tx-segment-map]
-  (as-> tx-segment-map x
-    (map (fn [[k v]]
-           (cond
-             (and (contains? entitity-attributes k) (coll? v))        [k (map (fn [single-value] (get idmap single-value single-value)) v)]
-             (and (contains? entitity-attributes k) (not (coll? v)))  [k (get idmap v v)]
-             true                                                     [k v])) x)
-    (into {} x)))
-
-(defn ^:private replace-ids-in-coll [idmap tx-segment-vector]
-  (as-> tx-segment-vector x
-    (map (fn [v] (if (coll? v)
-                   (replace-ids-in-coll idmap v)
-                   (get idmap v v))) x)
-    (vec x))) 
-
-(defn replace-ids [idmap tx]
-  (as-> tx x
-    (map (fn [tx-segment]
-           #_(debug "tx-segment" tx-segment)
-           #_(debug "tx-segment-type" (type tx-segment))
-           #_(debug "tx-segment-coll?" (coll? tx-segment))
-           (cond
-             (instance? datomic.db.DbId tx-segment)  (get idmap tx-segment tx-segment)
-             (map? tx-segment) (replace-ids-in-map idmap tx-segment)
-             (coll? tx-segment) (replace-ids-in-coll idmap tx-segment)
-             true (get idmap tx-segment tx-segment))) x)))
-
-
-#_(condp = (first tx) 
-      :add-node     (as-> tx x
-                      (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
-                      (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
-      :set-property (as-> tx x
-                      (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
-                      (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
-      )
-
-(defn ^:private detempidify
-  "Replace all tempids in the datomic transaction (vector) 'tx' by entity-ids from the bijective map 'id2temp'"
-  [id2temp tx]
-  (let [temp2id (clojure.set/map-invert id2temp)]
-    (as-> tx x
-      (replace-ids temp2id x)
-      (vec x))))
-
-(defn ^:private tempidify
-  "Replace all entity-ids in the datomic transaction (vector) 'tx' by tempids from the bijective map 'id2temp'"
-  [id2temp tx]
-  (debug "tempidify" tx)
-  (as-> tx x
-    (map  (partial replace-ids id2temp) x)
-    (vec x)))
 
 (defn save 
   "Save changes made in a session to the database by providing the transaction to be transacted against the connection"
   [db transactions]
-  (loop [tx (debug "first" (first transactions))
-         rest-transactions (debug "rest" (rest transactions))
+  (loop [tx (first transactions)
+         rest-transactions (rest transactions)
          final-tx nil
          tx-results nil
          id2temp nil]
     (if (nil? tx)
       final-tx
-      (do (debug "id2temp" id2temp)
-        (let [db-after (get (first tx-results) :db-after)
-              current-db (or db-after db-after db)
-              tx-fn (get (datomic/entity current-db (first tx)) :db/fn)
-              sub-tx (detempidify id2temp (rest tx))
-              ;;_  (debug "sub-tx" (type sub-tx))
-              temp-tx (apply tx-fn (cons current-db sub-tx))
-              result (datomic/with current-db temp-tx) 
-              new-tx-results (cons result tx-results)
-              new-id2temp (transaction-recorder/intermediate-db-id-to-tempid-map {:tx-result [result]
-                                                                                  :tx temp-tx}
-                                                                                 id2temp)
-              new-final-tx (cons (tempidify new-id2temp temp-tx) final-tx)]
-          (println "temp-tx" temp-tx )
-          (recur (first rest-transactions)
-                 (rest rest-transactions)
-                 new-final-tx
-                 new-tx-results
-                 new-id2temp))))))
+      (let [db-after (get (first tx-results) :db-after)
+            current-db (or db-after db-after db)
+            tx-fn (get (datomic/entity current-db (first tx)) :db/fn)
+            sub-tx (transaction-recorder/detempidify id2temp (vector (rest tx)))
+            ;;_  (debug "sub-tx" (type sub-tx))
+            temp-tx (apply tx-fn (cons current-db (first sub-tx)))
+            result (datomic/with current-db (transaction-recorder/detempidify id2temp (vec temp-tx))) 
+            new-tx-results (cons result tx-results)
+            new-id2temp (transaction-recorder/intermediate-db-id-to-tempid-map
+                         [{:tx-result result
+                           :tx temp-tx}]
+                         id2temp)
+            new-final-tx (cons (transaction-recorder/tempidify new-id2temp temp-tx) final-tx)]
+        #_(debug "new-id2temp" new-id2temp)
+        #_(debug "temp-tx" temp-tx )
+        (recur (first rest-transactions)
+               (rest rest-transactions)
+               new-final-tx
+               new-tx-results
+               new-id2temp)))))

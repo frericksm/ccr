@@ -4,8 +4,71 @@
 
 (defn debug [m x] (println m x) x)
 
+
 (spec/def ::recorded-tx (spec/keys :req-un [::tx  ::db-after ::db-before]))
 (spec/def ::session (spec/coll-of ::recorded-tx))
+
+
+(def entitity-attributes #{:db/id :jcr.value/reference :jcr.node/children :jcr.node/properties :jcr.property/values})
+
+(defn ^:private replace-ids-in-map [idmap tx-segment-map]
+  (as-> tx-segment-map x
+    (map (fn [[k v]]
+           (cond
+             (and (contains? entitity-attributes k) (coll? v))        [k (map (fn [single-value] (get idmap single-value single-value)) v)]
+             (and (contains? entitity-attributes k) (not (coll? v)))  [k (get idmap v v)]
+             true                                                     [k v])) x)
+    (into {} x)))
+
+(defn replace-ids-in-coll [idmap tx-segment-vector]
+  (as-> tx-segment-vector x
+    (map (fn [v]
+           (cond
+             (instance? datomic.db.DbId v) (get idmap v v)
+             (coll? v) (replace-ids-in-coll idmap v)
+             true      (get idmap v v))) x)
+    (vec x))) 
+
+(defn replace-ids [idmap tx]
+  (as-> tx x
+    (map (fn [tx-segment]
+           #_(debug "tx-segment" tx-segment)
+           #_(debug "tx-segment-type" (type tx-segment))
+           #_(debug "tx-segment-coll?" (coll? tx-segment))
+           (cond
+             (instance? datomic.db.DbId tx-segment) (get idmap tx-segment tx-segment)
+             (map? tx-segment) (replace-ids-in-map idmap tx-segment)
+             (coll? tx-segment) (replace-ids-in-coll idmap tx-segment)
+             true (get idmap tx-segment tx-segment))) x)))
+
+
+#_(condp = (first tx) 
+      :add-node     (as-> tx x
+                      (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
+                      (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
+      :set-property (as-> tx x
+                      (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
+                      (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
+      )
+
+(defn detempidify
+  "Replace all tempids in the datomic transaction (vector) 'tx' by entity-ids from the bijective map 'id2temp'"
+  [id2temp tx]
+  (let [temp2id (clojure.set/map-invert id2temp)
+        result (as-> tx x
+                 (map (partial replace-ids temp2id) x)
+                 (vec x))]
+    result
+    ))
+ 
+(defn tempidify
+  "Replace all entity-ids in the datomic transaction (vector) 'tx' by tempids from the bijective map 'id2temp'"
+  [id2temp tx]
+  #_(debug "tempidify" tx)
+  (as-> tx x
+    (map  (partial replace-ids id2temp) x)
+    (vec x)))
+
 
 (defn ^:private calc-current-db
   "Returns a datomic db. If recording is not empty then the :db-after value of the last entry in recording is returned. Otherwise a fresh (datomic.api/db connection) is returned"
@@ -59,33 +122,46 @@
       (recur (deref transaction-recorder-atom)))))
 
 (defn replace-entity-ids-in [id2temp tx]
-  (condp = (first tx) 
-      :add-node     (as-> tx x
-                      (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
-                      (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
-      :set-property (as-> tx x
-                      (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
-                      (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
-      ))
-
-(defn ^:private tempids-from [tx]
-  (debug "tempids-from" tx)
-  (condp = (first tx) 
-      :add-node     (vector (nth tx 1) (nth tx 2))
-      :set-property (vector (nth tx 1) (nth tx 2))
-      ))
+  (cond  
+    (= :add-node(first tx))      (as-> tx x
+                                   (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
+                                   (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
+    (= :set-property (first tx)) (as-> tx x
+                                   (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
+                                   (assoc-in x [2] (get id2temp (nth tx 2) (nth tx 2))))
+    true (throw (IllegalArgumentException. (format "replace-entity-ids-in: %s" tx)))
+    
+    ))
+ 
+(defn ^:private entity-ids-from [tx]
+  #_(debug "entity-ids-from/1" tx)
+  (cond 
+    (= :add-node                 (first tx)) (vector (nth tx 1) (nth tx 2))
+    (= :set-property             (first tx)) (vector (nth tx 1) (nth tx 2))
+    (= :append-position-in-scope (first tx)) (vector (nth tx 1) (nth tx 3))
+    (map? tx)                    (as-> (filter (fn [[k v]] (contains? entitity-attributes k)) tx) x
+                                   #_(reduce (fn [a [k v]] (if coll? v) (concat a v) (cons v a)) nil x)
+                                   (reduce (fn [a [k v]]
+                                             (cond
+                                               (instance? datomic.db.DbId v) (cons v a)
+                                               (coll? v) (concat v a)
+                                               true (cons v a))) nil x))  
+    true (throw (IllegalArgumentException. (format "entity-ids-from: %s" tx)))
+    ))
 
 (defn intermediate-db-id-to-tempid-map 
   ([recording]
    (intermediate-db-id-to-tempid-map  recording {}))
   ([recording to-extend]
+   #_(debug "recording" recording)
    (as-> recording x
-     (map (fn [r]
-            (let [tempids (->> r :tx-result :tempids )
-                  db      (->> r :tx-result :db-after )
+     (map (fn [r] 
+            (let [tempids (->> r :tx-result :tempids)
+                  db      (->> r :tx-result :db-after)
                   ids     (as-> (get r :tx) x
-                            (map tempids-from x)
-                            (apply concat x))]
+                            (map entity-ids-from x)
+                            (apply concat x))] 
+              #_(debug "ids" ids)
               (reduce (fn [a v] (let [intermediate-db-id (datomic/resolve-tempid db tempids v)]
                                   (if (not (nil? intermediate-db-id))
                                     (assoc a intermediate-db-id v)
@@ -130,5 +206,5 @@
         (vec x)  ;; in einen Vektor umwandeln
         (vector :save x)   ;; die tx-function :save aufrufen
         (vector x) ;; in einen Vector packen  
-        (debug "tx" x)
+        #_(debug "tx" x)
         (datomic/transact (:conn session) x)))))
