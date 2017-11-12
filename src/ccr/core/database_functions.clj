@@ -137,19 +137,22 @@
          id2temp nil]
     (if (nil? tx)
       final-tx
-      (let [db-after (debug "db-after" (get (debug "first" (first tx-results)) :db-after))
-            current-db (or db-after db-after db)
-            tx-fn (get (datomic/entity current-db (first tx)) :db/fn)
-            sub-tx (detempidify id2temp (rest tx))
-            ;;_  (debug "sub-tx" (type sub-tx))
-            temp-tx (apply tx-fn (cons current-db sub-tx))
-            result (datomic/with current-db temp-tx) 
-            new-tx-results (cons result tx-results)
-            new-id2temp (transaction-recorder/intermediate-db-id-to-tempid-map [result] id2temp)
-            new-final-tx (cons (tempidify new-id2temp temp-tx) final-tx)]
-        (println "temp-tx" temp-tx )
-        (recur (first rest-transactions)
-               (rest rest-transactions)
-               new-final-tx
-               new-tx-results
-               new-id2temp)))))
+      (do (debug "id2temp" id2temp)
+        (let [db-after (get (first tx-results) :db-after)
+              current-db (or db-after db-after db)
+              tx-fn (get (datomic/entity current-db (first tx)) :db/fn)
+              sub-tx (detempidify id2temp (rest tx))
+              ;;_  (debug "sub-tx" (type sub-tx))
+              temp-tx (apply tx-fn (cons current-db sub-tx))
+              result (datomic/with current-db temp-tx) 
+              new-tx-results (cons result tx-results)
+              new-id2temp (transaction-recorder/intermediate-db-id-to-tempid-map {:tx-result [result]
+                                                                                  :tx temp-tx}
+                                                                                 id2temp)
+              new-final-tx (cons (tempidify new-id2temp temp-tx) final-tx)]
+          (println "temp-tx" temp-tx )
+          (recur (first rest-transactions)
+                 (rest rest-transactions)
+                 new-final-tx
+                 new-tx-results
+                 new-id2temp))))))

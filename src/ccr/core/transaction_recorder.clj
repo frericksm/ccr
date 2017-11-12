@@ -4,8 +4,8 @@
 
 (defn debug [m x] (println m x) x)
 
-(spec/def ::tx-result (spec/keys :req [::db-after ::db-before]))
-(spec/def ::recording (spec/coll-of ::tx-result))
+(spec/def ::recorded-tx (spec/keys :req-un [::tx  ::db-after ::db-before]))
+(spec/def ::session (spec/coll-of ::recorded-tx))
 
 (defn ^:private calc-current-db
   "Returns a datomic db. If recording is not empty then the :db-after value of the last entry in recording is returned. Otherwise a fresh (datomic.api/db connection) is returned"
@@ -43,6 +43,7 @@
 (defn record-tx
   "Records the transaction tx to the recorder"
   [session tx]
+  #_(assert (spec/valid? ::session session))
   (as-> (apply-transaction (:conn session)
                            (:transaction-recorder-atom session)
                            tx) x
@@ -68,6 +69,7 @@
       ))
 
 (defn ^:private tempids-from [tx]
+  (debug "tempids-from" tx)
   (condp = (first tx) 
       :add-node     (vector (nth tx 1) (nth tx 2))
       :set-property (vector (nth tx 1) (nth tx 2))
