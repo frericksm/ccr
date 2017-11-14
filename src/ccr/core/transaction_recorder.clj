@@ -11,10 +11,11 @@
 
 (def entitity-attributes #{:db/id :jcr.value/reference :jcr.node/children :jcr.node/properties :jcr.property/values})
 
-(defn ^:private replace-ids-in-map [idmap tx-segment-map]
+(defn replace-ids-in-map [idmap tx-segment-map]
   (as-> tx-segment-map x
     (map (fn [[k v]]
            (cond
+             (and (contains? entitity-attributes k) (instance? datomic.db.DbId v))  [k (get idmap v v)]
              (and (contains? entitity-attributes k) (coll? v))        [k (map (fn [single-value] (get idmap single-value single-value)) v)]
              (and (contains? entitity-attributes k) (not (coll? v)))  [k (get idmap v v)]
              true                                                     [k v])) x)
@@ -25,12 +26,17 @@
     (map (fn [v]
            (cond
              (instance? datomic.db.DbId v) (get idmap v v)
-             (coll? v) (replace-ids-in-coll idmap v)
+             ;;(coll? v) (replace-ids-in-coll idmap v)
              true      (get idmap v v))) x)
     (vec x))) 
 
-(defn replace-ids [idmap tx]
-  (as-> tx x
+(defn replace-ids [idmap tx-segment]
+  (cond
+    (instance? datomic.db.DbId tx-segment) (get idmap tx-segment tx-segment)
+    (map? tx-segment) (replace-ids-in-map idmap tx-segment)
+    (coll? tx-segment) (replace-ids-in-coll idmap tx-segment)
+    true (get idmap tx-segment tx-segment))
+  #_(as-> tx x
     (map (fn [tx-segment]
            #_(debug "tx-segment" tx-segment)
            #_(debug "tx-segment-type" (type tx-segment))

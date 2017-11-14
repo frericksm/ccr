@@ -88,7 +88,8 @@
             sub-tx (transaction-recorder/detempidify id2temp (vector (rest tx)))
             ;;_  (debug "sub-tx" (type sub-tx))
             temp-tx (apply tx-fn (cons current-db (first sub-tx)))
-            result (datomic/with current-db (transaction-recorder/detempidify id2temp (vec temp-tx))) 
+            detemp-tx (debug "detemp-tx" (transaction-recorder/detempidify id2temp (debug "temp-tx" (vec temp-tx))))
+            result (datomic/with current-db detemp-tx) 
             new-tx-results (cons result tx-results)
             new-id2temp (transaction-recorder/intermediate-db-id-to-tempid-map
                          [{:tx-result result
