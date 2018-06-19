@@ -115,13 +115,26 @@
  
 
   (parent [this]
-    )
+    (let [db (transaction-recorder/current-db session)]
+(as-> (datomic/q (model/parent-query id) db) x
+                                (map first x)
+                                (set x)
+                                (first x)
+                               (if (nil? x)
+                                 nil
+                                (new-node session x)))))
 
-  (path [this]
-    )
+    (path [this]
+          (loop [path-segments (cons (ccr.api.node/item-name this) nil)
+                parent (ccr.api.node/parent this)]
+          (if (nil? parent)
+            (path/absolute-path path-segments)
+            (recur (cons (ccr.api.node/item-name parent) path-segments)
+                   (ccr.api.node/parent parent)))
+          ))
 
   (session [this]
-    )
+session)
 
   (modified? [this]
     )

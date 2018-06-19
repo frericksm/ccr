@@ -2,6 +2,13 @@
 
 (defn debug [m x] (println m x) x)
 
+(defn absolute-path 
+[path-segments]
+(as-> path-segments x
+  (interpose "/" x)
+  (apply str x))
+)
+
 (defn to-path [lexical-form]
   #_(debug "lexical-form" lexical-form)
   (cond (= "/" lexical-form) (list "/")
