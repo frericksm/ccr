@@ -96,7 +96,7 @@
                    (child-node-name-query ?e ?c childname)
                    (node-type-query ?e nodetype-name))))
 
-(defn ^:private parent-query [child-entity-id]
+(defn  parent-query [child-entity-id]
   (let [?e (gensym "?e")]
     (merge-queries {:find [?e]}
                    (child-node-query ?e child-entity-id))))
