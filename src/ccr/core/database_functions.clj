@@ -7,12 +7,17 @@
             [ccr.core.transaction-recorder :as transaction-recorder]
             [ccr.core.transactor-support :as transactor-support]))
 
-(defn debug [m x] (println m x) x)
+(defn debug [m x] #_(println m x) x)
 
 (defn add-node
   "Adds a childnode named 'basename' of nodetype 'primary-node-type' to the :jcr.node with entity-id 'parent-node-id'"
   [db node-id child-id rel-path primary-node-type] 
-  #_(debug "add-node" (str node-id child-id rel-path primary-node-type))
+  (debug "add-node:" "entry")
+  (debug "add-node: node-id" node-id )
+  (debug "add-node: db" db )
+  (debug "add-node: child-id" child-id )
+  (debug "add-node: rel-path" rel-path )
+  (debug "add-node: primary-node-type" primary-node-type)
   (let [segments (path/to-path rel-path)
         parent-segments (drop-last segments)
         basename (last segments)
@@ -30,11 +35,11 @@
     (as-> (model-trans/node-transaction basename autocreated-childnodes
                                         autocreated-properties) x
       (transaction-utils/translate-value2 x child-id)
+
       (let [child-node-tx (second x)
-            tx (concat (transaction-utils/add-tx parent-node-id child-id) child-node-tx)]
-        #_(println "tx" tx)
-        tx
-        ))))
+            add-tx (transaction-utils/add-tx parent-node-id child-id)
+            result-tx (concat add-tx child-node-tx)]
+        (debug "add-node: return " result-tx)))))
 
 (defn set-property
   "Sets the property of the node (with node-id) called name to the specified values. Even if this property is single-valued the parameter values has to be a coll"
@@ -75,31 +80,40 @@
 (defn save 
   "Save changes made in a session to the database by providing the transaction to be transacted against the connection"
   [db transactions]
-  (loop [tx (first transactions)
-         rest-transactions (rest transactions)
-         final-tx nil
-         tx-results nil
-         id2temp nil]
-    (if (nil? tx)
-      final-tx
-      (let [db-after (get (first tx-results) :db-after)
-            current-db (or db-after db-after db)
-            tx-fn (get (datomic/entity current-db (first tx)) :db/fn)
-            sub-tx (transaction-recorder/detempidify id2temp (vector (rest tx)))
-            ;;_  (debug "sub-tx" (type sub-tx))
-            temp-tx (apply tx-fn (cons current-db (first sub-tx)))
-            detemp-tx (debug "detemp-tx" (transaction-recorder/detempidify id2temp (debug "temp-tx" (vec temp-tx))))
-            result (datomic/with current-db detemp-tx) 
-            new-tx-results (cons result tx-results)
-            new-id2temp (transaction-recorder/intermediate-db-id-to-tempid-map
-                         [{:tx-result result
-                           :tx temp-tx}]
-                         id2temp)
-            new-final-tx (cons (transaction-recorder/tempidify new-id2temp temp-tx) final-tx)]
-        #_(debug "new-id2temp" new-id2temp)
-        #_(debug "temp-tx" temp-tx )
-        (recur (first rest-transactions)
-               (rest rest-transactions)
-               new-final-tx
-               new-tx-results
-               new-id2temp)))))
+
+  (debug "save:" "entry")
+  (debug "save: db" db )
+  (debug "save: transactions" transactions )
+
+
+  (debug "save- return" (loop [tx (first transactions)
+                                     rest-transactions (rest transactions)
+                                     final-tx nil
+                                     tx-results nil
+                                     id2temp nil]
+                          (if (nil? tx) 
+                            final-tx
+                            (let [db-after (get (first tx-results) :db-after) ;; falls vorhanden
+                                  current-db (or db-after db)                 ;; sonst current-db
+                                  dbfn-name (debug "dbfn-name" (first tx))    ;; db-fn name holen 
+                                  dbfn-entity (debug "dbfn-entity" (datomic/entity current-db dbfn-name))  ;; db-fn entity  lesen
+                                  tx-fn (debug "tx-fn" (get dbfn-entity :db/fn))                           ;; db-fn lesen
+                                  tx-fn-args (transaction-recorder/detempidify id2temp (rest tx))          ;; args aufbereiten
+                                  _ (debug "tx-fn-args" tx-fn-args)
+                                  temp-tx (vec (apply tx-fn (cons current-db tx-fn-args)))                 ;; db-fn aufrufen
+                                  _ (debug "temp-tx line: 104" temp-tx)                                    ;; das ergbenis des aufrufs
+                                  detemp-tx (debug "detemp-tx" (transaction-recorder/detempidify id2temp temp-tx))
+
+                                  result (datomic/with current-db detemp-tx) 
+                                  new-tx-results (cons result tx-results)
+                                  new-id2temp (transaction-recorder/intermediate-db-id-to-tempid-map
+                                               [{:tx-result result
+                                                 :tx temp-tx}]
+                                               id2temp)
+                                  new-final-tx (concat (transaction-recorder/tempidify new-id2temp temp-tx) final-tx)]
+
+                              (recur (debug "recur- tx" (first rest-transactions))
+                                     (debug "recur- rest-transactions" (rest rest-transactions))
+                                     (debug "recur- final-tx" new-final-tx)
+                                     (debug "recur- tx-results" new-tx-results)
+                                     (debug "recur new-id2temp" new-id2temp)))))))
