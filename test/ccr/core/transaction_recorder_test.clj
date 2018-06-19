@@ -1,22 +1,34 @@
 (ns ccr.core.transaction-recorder-test
   (:require
+   [ccr.core.repository :as repository]
+   [ccr.api.repository :as api]
+   [ccr.api.session :as sapi]
    [ccr.api.nodetype :as ntapi]
    [ ccr.core.transaction-recorder :as transaction-recorder]
    [clojure.test :refer :all]
    [datomic.api :as datomic]
    ))
 
-(defn debug [m x] (println m x) x)
+(defn db-id [part id](datomic.db.DbId. part id))
+(defn debug [m x] #_(println m x) x)
 
 (def db-uri "datomic:mem://jcr")
 
 
-
 (deftest test-replace-ids-in-coll
   (testing "test-replace-ids-in-coll"
-    (let [tx  [17592186047978 (datomic/tempid :db.part/user) "A" nil]]
-      (is (= (debug "in" tx) (debug "out" (transaction-recorder/replace-ids-in-coll nil tx))))
-      )))
+    (let [
+          temp-id1 (datomic/tempid :db.part/user)
+          dbid1 (db-id :db.part/user 66)
+          idmap {temp-id1 dbid1 }
+          tx-in  [dbid1  "A" nil]
+          
+          tx-out (transaction-recorder/replace-ids-in-coll idmap tx-in)]
+
+#_(debug "dbid1"dbid1)
+#_(debug "tx-in" tx-in)
+#_(debug "tx-out" tx-out)
+      (is (= tx-in  tx-out)))))
 
 (deftest test-replace-ids
   (testing "test-replace-ids"

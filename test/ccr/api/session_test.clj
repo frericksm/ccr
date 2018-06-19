@@ -46,31 +46,31 @@
              (let [p1 (node/set-property-value node-a "prop1" "value1" "String")
                    v1 (as-> (node/property node-a "prop1") x
                         (node/value x))]
-               v1)) "setting a property on a node of type nt:unstructed")
+               v1)) "setting a property on a node of type nt:unstructured")
       
       (is (= "value2" 
              (let [p1 (node/set-property-value node-a "prop1" "value2" "String")
                    v1 (as-> (node/property node-a "prop1") x
                         (node/value x))]
-               v1)) "updating a property on a node of type nt:unstructed")
+               v1)) "updating a property on a node of type nt:unstructured")
 
       (is (= ["value1"] 
              (let [p1 (node/set-property-values node-a "prop2" ["value1"] "String")
                    v1 (as-> (node/property node-a "prop2") x
                         (node/values x))]
-               v1)) "setting a property on a node of type nt:unstructed")
+               v1)) "setting a property on a node of type nt:unstructured")
       
       (is (= ["value2"] 
              (let [p1 (node/set-property-values node-a "prop2" ["value2"] "String")
                    v1 (as-> (node/property node-a "prop2") x
                         (node/values x))]
-               v1)) "updating a property on a node of type nt:unstructed")
+               v1)) "updating a property on a node of type nt:unstructured")
 
       (is (= ["value1" "value2"] 
              (let [p1 (node/set-property-values node-a "prop3" ["value1" "value2"] "String")
                    v1 (as-> (node/property node-a "prop3") x
                         (node/values x))]
-               v1)) "updating a property on a node of type nt:unstructed")
+               v1)) "updating a property on a node of type nt:unstructured")
 
       ))
 
@@ -83,7 +83,7 @@
       
       (is (= "value1" 
              (do (node/set-property-value node-a "prop1" "value1" "String")
-                 (println (session/save s))
+                 (session/save s)
                  (let [s2 (rapi/login r)
                        rn2 (session/root-node s2)
                        node-a2 (node/node rn2 "A")
