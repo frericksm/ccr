@@ -73,7 +73,7 @@
  
  {:db/id #db/id[:db.part/user]
   :db/ident :add-node
-  :db/doc "Adds a childnode named 'basename' of nodetype 'primary-node-type' to the :jcr.node with entity-id 'parent-node-id'"
+  :db/doc "Adds a childnode  of nodetype 'primary-node-type' at rel-path 'rel-path' to the :jcr.node with entity-id 'parent-node-id'"
   :db/fn #db/fn {:lang "clojure"
                  :params [db node-id child-id rel-path primary-node-type]
                  :requires [[ccr.core.database-functions :as database-functions]]
