@@ -2,7 +2,7 @@
   (:require [datomic.api :as datomic]
             [clojure.spec.alpha :as spec]))
 
-(defn debug [m x] (println m x) x)
+(defn debug [m x] #_(println m x) x)
 
 
 (spec/def ::recorded-tx (spec/keys :req-un [::tx  ::db-after ::db-before]))
@@ -112,7 +112,9 @@
 (defn record-tx
   "Records the transaction tx to the recorder"
   [session tx]
-  #_(assert (spec/valid? ::session session))
+  (debug "record-tx " "entry")
+  (debug "record-tx-session" session)
+  (spec/assert ::session session)
   (as-> (apply-transaction (:conn session)
                            (:transaction-recorder-atom session)
                            tx) x
@@ -127,7 +129,9 @@
       state
       (recur (deref transaction-recorder-atom)))))
 
-(defn replace-entity-ids-in [id2temp tx]
+(defn replace-entity-ids-in 
+  "Erstzt entity-ids durch temp-ids in db-function trsnsactions"
+  [id2temp tx]
   (cond  
     (= :add-node(first tx))      (as-> tx x
                                    (assoc-in x [1] (get id2temp (nth tx 1) (nth tx 1)))
@@ -202,15 +206,18 @@
 (defn save
   "Commits the collected transactions against the connection"
   [session]
-  (if-let [state (reset-transaction-recorder-atom (:transaction-recorder-atom session))]
-    (let [id2temp (intermediate-db-id-to-tempid-map state)]
+        (debug "ccr.core.transaction-recorder/save" "entry")
+
+  (if-let [state (debug "state" (reset-transaction-recorder-atom (:transaction-recorder-atom session)))]
+
+    (let [id2temp (debug "intermediate-db-id-to-tempid-map"  (intermediate-db-id-to-tempid-map state))]
       (as-> state x
-        (map :tx x) ;; enthält die letzte Transtion als erstes Element
-        (reverse x) ;; daher die Reihenfolge umdrehen
+        (map :tx x) ;; enthält die letzte Transition als erstes Element
+        (reverse x) ;; daher die Reihenfolge umkehren
         (map (partial replace-entity-ids id2temp) x) ;; Die entity-ids wieder durch die ursprünglichen Temp-Ids ersetzen
         (apply concat x) ;; zu einer Liste von Transaktionen zusammenhängen
         (vec x)  ;; in einen Vektor umwandeln
         (vector :save x)   ;; die tx-function :save aufrufen
         (vector x) ;; in einen Vector packen  
-        #_(debug "tx" x)
+        (debug "ccr.core.transaction-recorder/save-tx" x)
         (datomic/transact (:conn session) x)))))
