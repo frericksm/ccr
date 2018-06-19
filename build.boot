@@ -12,7 +12,7 @@
 (set-env!
  :source-paths #{"src" "test" "dev"}
  :resource-paths #{"resources"}
- :dependencies '[[org.clojure/clojure "1.9.0-beta2"]
+ :dependencies '[[org.clojure/clojure "1.9.0"]
                  [org.clojure/data.zip "0.1.2"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "0.4.0"]
