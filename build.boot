@@ -3,14 +3,14 @@
 
 
 (swap! boot.repl/*default-dependencies*
-       concat '[[cider/cider-nrepl "0.15.1"]])
+       concat '[[cider/cider-nrepl "0.17.0"]])
 
 (swap! boot.repl/*default-middleware*
        conj 'cider.nrepl/cider-middleware)
 
 
 (set-env!
- :source-paths #{"src" "test" "dev"}
+ :source-paths #{"src" "test" "dev" }
  :resource-paths #{"resources"}
  :dependencies '[[org.clojure/clojure "1.9.0"]
                  [org.clojure/data.zip "0.1.2"]
@@ -20,22 +20,27 @@
                  [enlive "1.1.6"]
                  [javax.jcr/jcr "2.0"]
                  [org.clojure/data.codec "0.1.0"]
-                 [com.datomic/datomic-free "0.9.5561.62"]
+                 [com.datomic/datomic-pro "0.9.5703"]
                  [org.clojure/spec.alpha "0.1.134"]
             
 ;;[com.datomic/datomic-free "0.9.5078" :exclusions [joda-time]]
 
                  [adzerk/boot-test "1.2.0" :scope "test"]
 
-                 [org.clojure/tools.namespace "0.2.4"]
+                 [org.clojure/tools.namespace "0.2.11"]
+                 [boot-codox "0.10.4" :scope "test"]
                  ])
 
+
+(require '[codox.boot :refer [codox]])
 (require '[adzerk.boot-test :refer :all])
 
 (task-options! repl
                {:server true
                 :port 44444
-                :eval "(in-ns user)"})
+                :init-ns 'user
+                :skip-init true
+              })
 
 (deftask add-datomic-pro-dependencies
   "Add datomic pro and sql storage dependencies. In particular: DB2)"
@@ -59,7 +64,7 @@
   (set-env! :dependencies
             #(vec
               (concat %
-                      '[[com.datomic/datomic-free "0.9.5078" :exclusions [joda-time]]])))
+                      '[[com.datomic/datomic-free "0.9.5703" :exclusions [joda-time]]])))
   identity)
 
 (deftask setup-develop
@@ -67,7 +72,7 @@
   []
   (set-env! :source-paths #(conj % "dev"))
   (set-env! :dependencies
-            #(concat % '[[org.clojure/tools.namespace "0.2.4"]]))
+            #(concat % '[[org.clojure/tools.namespace "0.2.11"]]))
   identity)
 
 (deftask load-data-readers
