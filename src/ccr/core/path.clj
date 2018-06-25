@@ -3,11 +3,12 @@
 (defn debug [m x] (println m x) x)
 
 (defn absolute-path 
-[path-segments]
-(as-> path-segments x
-  (interpose "/" x)
-  (apply str x))
-)
+"Takes a jcr path   'path' (see https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4 Paths)  and builds an absolute path in lexical form (see https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.3 Lexical Forms"
+  [path]
+  (as-> path x
+    (interpose "/" x)
+    (apply str x))
+  )
 
 (defn to-path [lexical-form]
   #_(debug "lexical-form" lexical-form)
