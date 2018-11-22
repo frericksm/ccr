@@ -17,7 +17,7 @@
 (defn find-new-child-id 
   "Returns the id of the newly added child to node with 'node-id' at rel-path"
   [tx-result node-id rel-path]
-  (let [segments (path/to-path rel-path)
+  (let [segments (path/jcr-path rel-path)
         parent-segments (drop-last segments)
         basename (last segments)
         
@@ -61,7 +61,7 @@
 
   (node [this relPath]
     (let [db (transaction-recorder/current-db session)]
-      (as-> (transactor-support/node-by-path db id (path/to-path relPath)) x
+      (as-> (transactor-support/node-by-path db id (path/jcr-path relPath)) x
         (new-node session x))))
 
 
@@ -78,7 +78,7 @@
 
   (property [this relPath]
     (let [db (transaction-recorder/current-db session)]
-      (as-> (transactor-support/item-by-path db id (path/to-path relPath)) x
+      (as-> (transactor-support/item-by-path db id (path/jcr-path relPath)) x
         (new-property session x))))
 
   (properties [this]
@@ -125,11 +125,11 @@
                                 (new-node session x)))))
 
     (path [this]
-          (loop [path-segments (cons (ccr.api.node/item-name this) nil)
+          (loop [jcr-path (cons (ccr.api.node/item-name this) nil)
                 parent (ccr.api.node/parent this)]
           (if (nil? parent)
-            (path/absolute-path path-segments)
-            (recur (cons (ccr.api.node/item-name parent) path-segments)
+            (path/lexical-form jcr-path)
+            (recur (cons (ccr.api.node/item-name parent) jcr-path)
                    (ccr.api.node/parent parent)))
           ))
 

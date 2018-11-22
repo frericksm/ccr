@@ -55,7 +55,7 @@
     (if (p/absolute-path? rel-path)
       (throw (RuntimeException. "no relative path"))
       (let [db (ctr/current-db session)]
-        (->> (p/to-path rel-path)
+        (->> (p/jcr-path rel-path)
              (reduce (fn [a name] (read-node db a name))
                      (:node-db-id node))
              (node session)))))

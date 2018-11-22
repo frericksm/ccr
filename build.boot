@@ -96,6 +96,6 @@
   []
   (comp 
    (watch)
-   ;;(speak) 
+   (speak) 
    (test)))
  

@@ -1,10 +1,15 @@
 (ns ccr.core.jcr-spec
-""
+"This namespace contains clojure specs for jcr concepts 
+such as 
+jcr name see https://docs.adobe.com/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.2%20Names
+jcr path  see https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4%20Paths
+
+Hence a jcr name is a seq which comforms to ::jcr-name and 
+ a jcr path is a seq whichs conforms to ::path 
+
+"
   (:require
             [clojure.spec.alpha :as s]))
-
-;;https://docs.adobe.com/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.2%20Names
-
 
 (s/def ::index (s/and int? #(> % 0)))
 (s/def ::jcr-name (s/cat :ns ::namespace :local-name ::local-name) )
@@ -14,15 +19,13 @@
 (s/def ::local-name string?) 
 
 
-(s/def ::path (s/alt  :abs-path ::abs-path :rel-path ::rel-path))
+(s/def ::jcr-path (s/alt  :abs-path ::abs-path 
+                      :rel-path ::rel-path))
 (s/def ::abs-path (s/+ ::abs-path-segment))
 (s/def ::rel-path (s/+ ::rel-path-segment))
 (s/def ::abs-path-segment (s/or :path (s/cat :root ::root-segment :path (s/* ::rel-path-segment)) :identifier  ::identifier-segment))
 (s/def ::rel-path-segment (s/or :parent ::parent-segment :self ::self-segment :name-seg ::name-segment))
 (s/def ::name-segment (s/cat :name ::jcr-name :index ::index) )
-
-
-#_(s/def ::path-segment (s/or :root ::root-segment :parent ::parent-segment :self ::self-segment :id ::identifier-segment :name ::name-segment))
 
 (s/def ::root-segment (s/and string? #(= "/" %)))
 (s/def ::parent-segment (s/and string? #(= ".." %)))

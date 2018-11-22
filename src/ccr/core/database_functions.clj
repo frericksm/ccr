@@ -18,7 +18,7 @@
   (debug "add-node: child-id" child-id )
   (debug "add-node: rel-path" rel-path )
   (debug "add-node: primary-node-type" primary-node-type)
-  (let [segments (path/to-path rel-path)
+  (let [segments (path/jcr-path rel-path)
         parent-segments (drop-last segments)
         basename (last segments)
         parent-node-id (transactor-support/node-by-path db node-id parent-segments)
