@@ -3,7 +3,7 @@
 
 
 (swap! boot.repl/*default-dependencies*
-       concat '[[cider/cider-nrepl "0.17.0"]])
+       concat '[[cider/cider-nrepl "0.18.0"]])
 
 (swap! boot.repl/*default-middleware*
        conj 'cider.nrepl/cider-middleware)
@@ -22,6 +22,8 @@
                  [org.clojure/data.codec "0.1.0"]
                  [com.datomic/datomic-pro "0.9.5703"]
                  [org.clojure/spec.alpha "0.1.134"]
+
+
             
 ;;[com.datomic/datomic-free "0.9.5078" :exclusions [joda-time]]
 
@@ -29,6 +31,7 @@
 
                  [org.clojure/tools.namespace "0.2.11"]
                  [boot-codox "0.10.4" :scope "test"]
+                 [org.clojure/test.check "0.9.0" :scope "test"]
                  ])
 
 
