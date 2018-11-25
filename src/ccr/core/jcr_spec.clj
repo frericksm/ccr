@@ -4,8 +4,8 @@ such as
 jcr name see https://docs.adobe.com/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.2%20Names
 jcr path  see https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4%20Paths
 
-Hence a jcr name is a seq which comforms to ::jcr-name and 
- a jcr path is a seq whichs conforms to ::path 
+Hence a jcr name is a seq of strings which comforms to ::jcr-name and 
+ a jcr path is a seq of strings whichs conforms to ::jcr-path 
 
 "
   (:require
@@ -19,11 +19,12 @@ Hence a jcr name is a seq which comforms to ::jcr-name and
 (s/def ::local-name string?) 
 
 
-(s/def ::jcr-path (s/alt  :abs-path ::abs-path 
-                      :rel-path ::rel-path))
-(s/def ::abs-path (s/+ ::abs-path-segment))
-(s/def ::rel-path (s/+ ::rel-path-segment))
-(s/def ::abs-path-segment (s/or :path (s/cat :root ::root-segment :path (s/* ::rel-path-segment)) :identifier  ::identifier-segment))
+(s/def ::jcr-path (s/or  :abs-path ::abs-path 
+                      :rel-path ::rel-path
+))
+(s/def ::abs-path (s/cat :root ::root-segment  ::abs-path-segments (s/* ::rel-path-segment)))
+(s/def ::rel-path  (s/* ::rel-path-segment))
+(s/def ::rel-path-segments (s/+ ::rel-path-segment))
 (s/def ::rel-path-segment (s/or :parent ::parent-segment :self ::self-segment :name-seg ::name-segment))
 (s/def ::name-segment (s/cat :name ::jcr-name :index ::index) )
 

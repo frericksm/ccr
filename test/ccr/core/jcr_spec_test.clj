@@ -24,24 +24,6 @@ some paths
 
 (deftest test-paths
   (testing "path spec"
-    (is (= [:abs-path [[:path {:root "/", :path [[:self "."]]}]]] 
-           (spec/conform ::jcr-spec/jcr-path [["/" "." ]])) "root path")
-    (is (= [:abs-path
-            [[:path
-              {:root "/",
-               :path
-               [[:name-seg
-                 {:name
-                  {:ns [:uri "http://namespace.de"], :local-name "a"},
-                  :index 1}]
-                [:name-seg
-                 {:name
-                  {:ns [:uri "http://namespace.de"], :local-name "b"},
-                  :index 2}]]}]]] 
-           (spec/conform ::jcr-spec/jcr-path [["/" ["http://namespace.de" "a" 1] ["http://namespace.de" "b" 2]]])) "root path")
-    (is (= [:abs-path
-            [[:identifier "2846e798-28e5-4d31-ae5b-12b4c7a1d2c4"]]] 
-           (spec/conform ::jcr-spec/jcr-path ["2846e798-28e5-4d31-ae5b-12b4c7a1d2c4" ])) "identifier path")
-    
-    (is (= [:rel-path [[:self "."]]] (spec/conform ::jcr-spec/jcr-path ["." ]) )"self path")
-    (is (= [:rel-path [[:parent ".."]]] (spec/conform ::jcr-spec/jcr-path [".."])))))
+    (is (= ["/" ["" "a" 1]["" "b" 2]]
+ [:abs-path {:root "/", :ccr.core.jcr-spec/abs-path-segments [[:name-seg {:name {:ns [:empty ""], :local-name "a"}, :index 1}] [:name-seg {:name {:ns [:empty ""], :local-name "b"}, :index 2}]]}]) "path /a/b")
+))
