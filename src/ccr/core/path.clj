@@ -2,26 +2,22 @@
   (:require    [clojure.spec.alpha :as spec]
                [ccr.core.jcr-spec :as jcr-spec]))
 
+(declare lexical-form-from-conformed-path) 
+
 (defn debug [m x] (println m x) x)
-
-
-
-
-
-
 (defn lexical-form-rel-path 
 "Builds a lexical path from  a conform result to spec :jcr-spec/rel-path" 
 [conformed-path]
-  (let [lx-segs (map lexical-form (first conformed-path))]
+  (let [lx-segs (map lexical-form-from-conformed-path (first conformed-path))]
 (clojure.string/join "/"  lx-segs )))
 (defn lexical-form-abs-path 
 "Builds a lexical path from  a conform result to spec :jcr-spec/abs-path" 
 [conformed-path]
   (let [abspath (first conformed-path)
-        root (:root abspath  )
+        ;;root (:root abspath  )
         segs ( :ccr.core.jcr-spec/abs-path-segments abspath)
-        lx-segs (map lexical-form segs)]
-(clojure.string/join  "/" (cons root lx-segs ))))
+        lx-segs (map lexical-form-from-conformed-path segs)]
+(str "/" (clojure.string/join  "/" lx-segs ))))
 
 (defn lexical-form-name-seg
 "Builds a lexical path fr a conform result to spec :jcr-spec/abs-path" 
@@ -30,38 +26,35 @@
         name (:name name-seg)
         ns (second (get-in name-seg [:name :ns]))
         local-name (get-in name-seg [:name :local-name])
-        index (get-in name-seg [:name :uri])]
-(str "{" ns "}" local-name index)))
+        index (get-in name-seg [ :index])]
+(str "{" ns "}" local-name (if (> index 1  ) (str "[" index "]") ))))
 
 
-(defmulti lexical-form 
-  "Takes a jcr path   'path' (see https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4%20Paths)  
-  and builds an absolute path in lexical form (see https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.3%20Lexical Forms"
-  first)
-#_(defmethod  lexical-form :rel-path [conformed-path] (as-> (rest conformed-path) x
-                                                      (map lexical-form x )))
-(defmethod  lexical-form :abs-path [conformed-path] (lexical-form-abs-path (rest conformed-path)))
-(defmethod  lexical-form :rel-path [conformed-path] (lexical-form-rel-path (rest conformed-path)))
-(defmethod  lexical-form :name-seg [conformed-path] (lexical-form-name-seg (rest conformed-path)))
-(defmethod  lexical-form :self [conformed-path] ".")
-(defmethod  lexical-form :parent [conformed-path] "..")
-(defmethod  lexical-form :default  [conformed-path]  (str "default " conformed-path))
+(defmulti lexical-form-from-conformed-path 
+  "..." first)
+(defmethod  lexical-form-from-conformed-path  :abs-path [conformed-path] (lexical-form-abs-path (rest conformed-path)))
+(defmethod  lexical-form-from-conformed-path :rel-path [conformed-path] (lexical-form-rel-path (rest conformed-path)))
+(defmethod  lexical-form-from-conformed-path :name-seg [conformed-path] (lexical-form-name-seg (rest conformed-path)))
+(defmethod  lexical-form-from-conformed-path :self [conformed-path] ".")
+(defmethod  lexical-form-from-conformed-path :parent [conformed-path] "..")
+(defmethod  lexical-form-from-conformed-path :default  [conformed-path]  (str "default " conformed-path))
 
-
-(defn analyze [conformed-path]
-  (cond (map? conformed-path ) (map lexical-form conformed-path )
-        ( vector? conformed-path)  (map lexical-form conformed-path )
-))
 
 (defn conformed-path
   "Takes a jcr path and conforms it to the spec :jcr-spec/jcr-path " [path]
   (let [conformed-path (spec/conform ::jcr-spec/jcr-path  path)]
     (if (= conformed-path :clojure.spec.alpha/invalid)
-      (throw (IllegalArgumentException. (format "Illegal jcr-path %s" path))))
-    #_(println conformed-path )
-    conformed-path
-    ))
-
+      (throw (IllegalArgumentException. (format "Illegal jcr-path %s " path ))))
+    conformed-path))
+(defn lexical-form
+"Takes a jcr path   'path' and returns the  lexical form
+see
+https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4%20Paths 
+https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.3%20Lexical Forms" 
+  [path]
+  (as-> path x
+( conformed-path x)
+( lexical-form-from-conformed-path x)))
 (defn jcr-path 
   "Anwortet mit dem  JCR-Path zum Path path-in-lexical-form"
 
