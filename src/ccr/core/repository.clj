@@ -4,12 +4,16 @@
             [ccr.core.session]
             [ccr.core.workspace]
             [clojure.java.io :as io]
+            [clojure.edn :as edn]
             [clojure.tools.logging :as log]
             [datomic.api :as d  :only [q db]])
   (:import [ccr.session.Session]))
 
-(def schema-tx (read-string (slurp (io/resource "jcr.dtm"))))
-(def db-fns-tx (read-string (slurp (io/resource "jcr-database-functions.dtm"))))
+(def datomic-readers {'db/id  datomic.db/id-literal
+                      'db/fn  datomic.function/construct
+                      'base64 datomic.codec/base-64-literal})
+(def schema-tx (edn/read-string {:readers datomic-readers} (slurp (io/resource "jcr.dtm"))))
+(def db-fns-tx (edn/read-string {:readers datomic-readers} (slurp (io/resource "jcr-database-functions.dtm"))))
 
 (defn create-schema [conn]
   @(d/transact conn schema-tx))

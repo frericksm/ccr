@@ -10,23 +10,27 @@
     (nt/->NodeTypeManager session)))
 
 (defn create-workspace [conn workspace-name]
-  (as-> conn x
-        (d/transact x
-                    [{:db/id #db/id[:db.part/user -4]
-                      :jcr.value/position 0
-                      :jcr.value/string "nt:unstructured"}
-                     {:db/id #db/id[:db.part/user -3]
-                      :jcr.property/name "jcr:primaryType"
-                      :jcr.property/value-attr :jcr.value/string
-                      :jcr.property/values #db/id[:db.part/user -4]}
-                     {:db/id #db/id[:db.part/user -2]
-                      :jcr.node/name ""
-                      :jcr.node/properties #db/id[:db.part/user -3]}
-                     {:db/id #db/id[:db.part/user -1]
-                      :jcr.workspace/name workspace-name
-                      :jcr.workspace/rootNode #db/id[:db.part/user -2]}])
-        (deref x)
-        (:db-after x)))
+  (let [t1 (d/tempid :db.part/user)
+        t2 (d/tempid :db.part/user)
+        t3 (d/tempid :db.part/user)
+        t4 (d/tempid :db.part/user)]
+    (as-> conn x
+      (d/transact x
+                  [{:db/id t4
+                    :jcr.value/position 0
+                    :jcr.value/string "nt:unstructured"}
+                   {:db/id t3
+                    :jcr.property/name "jcr:primaryType"
+                    :jcr.property/value-attr :jcr.value/string
+                    :jcr.property/values [t4]}
+                   {:db/id t2
+                    :jcr.node/name ""
+                    :jcr.node/properties t3}
+                   {:db/id t1
+                    :jcr.workspace/name workspace-name
+                    :jcr.workspace/rootNode t2}])
+      (deref x)
+      (:db-after x))))
 
 (defn workspace [session workspace-name]
   (let [db (tr/current-db session)]    
