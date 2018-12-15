@@ -20,7 +20,8 @@
                  [enlive "1.1.6"]
                  [javax.jcr/jcr "2.0"]
                  [org.clojure/data.codec "0.1.0"]
-                 [com.datomic/datomic-pro "0.9.5703"]
+                 [com.datomic/datomic-free "0.9.5703" ]
+                 ;;[com.datomic/datomic-pro "0.9.5703"]
                  [org.clojure/spec.alpha "0.1.134"]
 
 
@@ -54,14 +55,14 @@
                       '[[com.ibm.db2/db2jcc "1.0" ]
                         [com.ibm.db2/db2jcc_license_cu "1.0" ]
                         [com.ibm.db2/db2jcc_license_cisuz "1.0" ]
-                        [com.datomic/datomic-pro "0.9.5130"
-                         :exclusions [joda-time]]])))
+                        ;;[com.datomic/datomic-pro "0.9.5130" :exclusions [joda-time]]
+                        ])))
   (set-env! :repositories
             #(vec (concat % {"my.datomic.com" {:url "https://my.datomic.com/repo"
                                                :creds :gpg}})))
   identity)
 
-(deftask add-development-dependencies
+#_(deftask add-development-dependencies
   "Setup for development"
   []
   (set-env! :dependencies
@@ -88,7 +89,7 @@
   "Start repl with extended develop classpath"
   []
   (comp ;(setup-develop)
-   (add-development-dependencies)
+   ;(add-development-dependencies)
    ;(load-data-readers)
    (repl)
    (wait)))
