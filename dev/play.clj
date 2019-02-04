@@ -11,7 +11,7 @@
 
 (def rn (s/root-node s))
 
-#_(import/import-xml s rn "/home/michael/projects/ccr/samples/c2.xml")
+(import/import-xml s rn "/home/michael/projects/ccr/samples/c2.xml")
 
 (as-> (n/properties (n/node rn "V1.0.3/isp:activityBody")) x
         (map n/item-name x))
@@ -25,4 +25,4 @@
 (import/import-xml s rn "/home/michael/projects/ccr/samples/content.xml")
 
 (as-> (n/nodes rn ) x
-        (map n/item-name x))
+        (map n/nodes x))
