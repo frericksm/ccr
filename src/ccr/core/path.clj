@@ -1,6 +1,15 @@
 (ns ccr.core.path
   (:require    [clojure.spec.alpha :as spec]
-               [ccr.core.jcr-spec :as jcr-spec]))
+               [ccr.core.jcr-spec :as jcr-spec]
+               [clojure.java.io :as io]
+               [instaparse.core :as insta]
+               [net.cgrand.enlive-html :as html]
+               ))
+
+
+(def lexical-path-parser
+  "A function with one parameter of type String. Assumes that the string is a jcr-path in lexical form . Parses the string and returns the syntax tree in :hiccup format"
+    (insta/parser (slurp (io/resource "path.abnf")) :input-format :abnf))
 
 (declare lexical-form-from-conformed-path) 
 
@@ -20,7 +29,7 @@
 (str "/" (clojure.string/join  "/" lx-segs ))))
 
 (defn lexical-form-name-seg
-"Builds a lexical path fr a conform result to spec :jcr-spec/abs-path" 
+  "Builds a lexical path from a conform result to spec :jcr-spec/abs-path" 
 [conformed-path]
   (let [name-seg (first conformed-path)
         name (:name name-seg)
@@ -55,20 +64,15 @@ https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.
   (as-> path x
 ( conformed-path x)
 ( lexical-form-from-conformed-path x)))
-(defn jcr-path 
+(defn  jcr-path 
   "Anwortet mit dem  JCR-Path zum Path path-in-lexical-form"
-
-  [path-in-lexical-form]
-  #_(debug "path-in-lexical-form" path-in-lexical-form)
-  (cond (= "/" path-in-lexical-form) (list "/")
-        (= "" path-in-lexical-form) (list "")
-        (.startsWith path-in-lexical-form "/") (conj (seq (.split (.substring  path-in-lexical-form 1) "/")) "/")
-        true (seq (.split path-in-lexical-form "/"))
-        ))
+  
+  [lexical-path]
+  (as-> lexical-path  x (ccr.core.path/lexical-path-parser x)
+        (flatten x)
+        (filter (comp not keyword?) x)))
 
 (defn absolute-path? [lexical-form]
   (= (first (jcr-path lexical-form)) "/" ))
 (defn absolute-path [jcr-path]
   nil)
-
-
