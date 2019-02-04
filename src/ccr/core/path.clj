@@ -67,11 +67,25 @@ https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.
 
 
 
-(defn apply-str [& children]
-  (println children)
-  (apply str children))
 
-(def tag-map {:Index apply-str})
+(defn flatten-filter-keywords-str [& children]
+  (as-> children x
+(flatten x)
+(filter (comp not keyword?) x)
+(apply str x)))
+(defn flatten-filter-keywords-vector [& children]
+  (as-> children x
+(flatten x)
+(filter (comp not keyword?) x)
+(vector x)))
+
+(def tag-map {
+              ;;:Name str
+              :LocalName flatten-filter-keywords-str
+              :Prefix flatten-filter-keywords
+              :QualifiedName flatten-filter-keywords-vector
+              ;;:PathSegment flatten-filter-keywords-vector
+            })
 
 (defn  jcr-path 
   "Anwortet mit dem  JCR-Path zum Path path-in-lexical-form"
