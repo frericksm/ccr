@@ -7,7 +7,8 @@
 (defn system
   "Returns a new instance of the whole application."
   []
-  {"ccr.datomic.uri" "datomic:dev://localhost:4334/jcr"};; "datomic:mem://jcr"
+  #_{"ccr.datomic.uri" "datomic:dev://localhost:4334/jcr"};; "datomic:mem://jcr"
+  {"ccr.datomic.uri" "datomic:mem://jcr"} 
   )
 
 
