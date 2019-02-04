@@ -64,13 +64,22 @@ https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.
   (as-> path x
 ( conformed-path x)
 ( lexical-form-from-conformed-path x)))
+
+
+
+(defn apply-str [& children]
+  (println children)
+  (apply str children))
+
+(def tag-map {:Index apply-str})
+
 (defn  jcr-path 
   "Anwortet mit dem  JCR-Path zum Path path-in-lexical-form"
+
   
   [lexical-path]
   (as-> lexical-path  x (ccr.core.path/lexical-path-parser x)
-        (flatten x)
-        (filter (comp not keyword?) x)))
+        (insta/transform tag-map x)))
 
 (defn absolute-path? [lexical-form]
   (= (first (jcr-path lexical-form)) "/" ))
