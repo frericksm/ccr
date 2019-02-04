@@ -2,17 +2,17 @@
 ; in ABNF https://tools.ietf.org/html/rfc2234
 
 Path          =  AbsolutePath / RelativePath
-AbsolutePath  = ("/" *1RelativePath) / ("[" Identifier "]" )
-RelativePath  = [RelativePath <"/">] PathSegment [<"/">]
+AbsolutePath  = ("/" 0*1RelativePath) / ("[" Identifier "]" )
+RelativePath  = 0*1[RelativePath <"/">] PathSegment [<"/">]
 PathSegment   = (ExpandedName 0*1Index) / QualifiedName 0*1Index  / SelfOrParent
 SelfOrParent  = Self  / Parent
 Self          = "."
 Parent        = ".."
 Index         = "[" Number "]"
 Identifier    = *(DIGIT / HEXDIG/ "-" )                                       ; See §3.3 Identifiers 
-Number        =  1*("1"/ "2"/ "3" / "4" / "5"/  "6"/ "7" / "8" / "9")  *DIGIT    ; An integer > 0 
-ExpandedName  =  '{' Namespace '}' LocalName                                    ; See §3.2.5.1 Expanded Form 
-QualifiedName = *[Prefix ':'] LocalName                                          ; See §3.2.5.2 Qualified Form 
+Number        =  1*("1"/ "2"/ "3" / "4" / "5"/  "6"/ "7" / "8" / "9")  *DIGIT ; An integer > 0 
+ExpandedName  =  '{' Namespace '}' LocalName                                  ; See §3.2.5.1 Expanded Form 
+QualifiedName = *[Prefix ':'] LocalName                                       ; See §3.2.5.2 Qualified Form 
 Namespace     = EmptyString / URI                                             ; see §3.2.1 Namespaces 
 EmptyString   =   ""
 Prefix        = NCName                                                        ; Any string that matches the NCName production in http://www.w3.org/TR/REC-xml-names
@@ -23,27 +23,15 @@ Name	 =    	NameStartChar *NameChar
 
 
 
-LocalName     = 1*ValidChar                                               ; see §3.2.2 Local Names 
-ValidChar = ALPHA / #"\u0009|\u000a|\u000d|[\u0020-\ud7ff\ue000-\uffff&&[^/:\[\]\|\*]]"
+LocalName     = 1*ValidChar                                                   ; see §3.2.2 Local Names 
+ValidChar     = ALPHA / #"\u0009|\u000a|\u000d|[\u0020-\ud7ff\ue000-\uffff&&[^/:\[\]\|\*]]"
 
-;InvalidChar = 	    #"[/:\[\]\|\*]" 
-
-
-;XmlChar	   = #"\u0009|\u000a|\u000d|[\u0020-\ud7ff]|[\ue000-\ufffd]|[\u10000-\u10ffff]"
-
+                                                                              ;InvalidChar = 	    #"[/:\[\]\|\*]" 
 URI           = scheme ":" hier-part [ "?" query ] [ "#" fragment ] ; https://tools.ietf.org/html/rfc3986#section-3
-
-   hier-part     = "//" authority path-abempty
-                 / path-absolute
-                 / path-rootless
-                 / path-empty
-
+   hier-part  = "//" authority path-abempty / path-absolute / path-rootless / path-empty
    URI-reference = URI / relative-ref
-
    absolute-URI  = scheme ":" hier-part [ "?" query ]
-
    relative-ref  = relative-part [ "?" query ] [ "#" fragment ]
-
    relative-part = "//" authority path-abempty
                  / path-absolute
                  / path-noscheme
