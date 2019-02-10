@@ -2,16 +2,16 @@
 ; in ABNF https://tools.ietf.org/html/rfc2234
 
 Path          =  AbsolutePath / RelativePath
-AbsolutePath  = ("/" 0*1RelativePath) / ("[" Identifier "]" )
+AbsolutePath  = ("/" 0*1RelativePath) / (<"["> Identifier <"]"> )
 RelativePath  = 0*1[RelativePath <"/">] PathSegment [<"/">]
 PathSegment   = (ExpandedName 0*1Index) / QualifiedName 0*1Index  / SelfOrParent
 SelfOrParent  = Self  / Parent
 Self          = "."
 Parent        = ".."
-Index         = "[" Number "]"
+Index         = <"["> Number <"]">
 Identifier    = *(DIGIT / HEXDIG/ "-" )                                       ; See §3.3 Identifiers 
 Number        =  1*("1"/ "2"/ "3" / "4" / "5"/  "6"/ "7" / "8" / "9")  *DIGIT ; An integer > 0 
-ExpandedName  =  '{' Namespace '}' LocalName                                  ; See §3.2.5.1 Expanded Form 
+ExpandedName  =  <'{'> Namespace <'}'> LocalName                                  ; See §3.2.5.1 Expanded Form 
 QualifiedName = *[Prefix <':' >] LocalName                                       ; See §3.2.5.2 Qualified Form 
 Namespace     = EmptyString / URI                                             ; see §3.2.1 Namespaces 
 EmptyString   =   ""
