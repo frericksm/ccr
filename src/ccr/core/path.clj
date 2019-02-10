@@ -1,4 +1,5 @@
 (ns ccr.core.path
+"This namespace provides functions to handle a jcr paths in   abstract and lexical form.  See https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4%20Paths" 
   (:require    [clojure.spec.alpha :as spec]
                [ccr.core.jcr-spec :as jcr-spec]
                [clojure.java.io :as io]
@@ -8,7 +9,7 @@
 
 
 (def lexical-path-parser
-  "A function with one parameter of type String. Assumes that the string is a jcr-path in lexical form . Parses the string and returns the syntax tree in :hiccup format"
+  "A function with one parameter of type String. Assumes that the string is a jcr-path in lexical form. See https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.3.3%20Lexical%20Path%20Grammar. Parses the string and returns the syntax tree in :hiccup format"
     (insta/parser (slurp (io/resource "path.abnf")) :input-format :abnf))
 
 (declare lexical-form-from-conformed-path) 
@@ -68,32 +69,51 @@ https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.
 
 
 
-(defn flatten-filter-keywords-str [& children]
+(defn transform-fn-factory [id t-fn ]
+(fn [& children]
+(cons id (t-fn children))))
+
+(defn flatten-filter-keywords-str
+  ""
+  [& children]
+  (as-> children x
+(flatten x)
+(filter (comp not keyword?) x)
+(apply str x)
+(vector x)))
+
+#_(defn flatten-filter-keywords-str [& children]
   (as-> children x
 (flatten x)
 (filter (comp not keyword?) x)
 (apply str x)))
-(defn flatten-filter-keywords-vector [& children]
+#_(defn flatten-filter-keywords-vector [& children]
   (as-> children x
 (flatten x)
 (filter (comp not keyword?) x)
 (vector x)))
 
 (def tag-map {
-              ;;:Name str
+              :Identifier flatten-filter-keywords-str
               :LocalName flatten-filter-keywords-str
-              :Prefix flatten-filter-keywords
-              :QualifiedName flatten-filter-keywords-vector
-              ;;:PathSegment flatten-filter-keywords-vector
+              :Prefix    flatten-filter-keywords-str
+              :Index     flatten-filter-keywords-str
+              :URI       flatten-filter-keywords-str
+
             })
+(def tag-map2 
+  (as-> tag-map x
+(map ( fn [ [ id t-fn]] (vector id (transform-fn-factory id t-fn)))x)
+  (into {} x)))
 
 (defn  jcr-path 
-  "Anwortet mit dem  JCR-Path zum Path path-in-lexical-form"
+  "Takes a jcr-path in lexical form and returns the corresponding abtract jcr path 
+  Throws a parse error when lexical-path does not match grammar https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.4.3.3%20Lexical%20Path%20Grammar. "
 
   
-  [lexical-path]
+  [lexical-path transform?]
   (as-> lexical-path  x (ccr.core.path/lexical-path-parser x)
-        (insta/transform tag-map x)))
+(if transform? (insta/transform tag-map2 x) x)))
 
 (defn absolute-path? [lexical-form]
   (= (first (jcr-path lexical-form)) "/" ))
